@@ -131,9 +131,8 @@ class ProjectUploadView(ModelView):
 
     def is_accessible(self):
         return isAcessible(current_user, True) or \
-               ((not (current_user is None)) and
-                (current_user is dm.User) and
-                current_user.profile.can_upload)
+               ((not (current_user is None) and
+                current_user.profile.can_upload))
 #endregion
 
 #region addView
