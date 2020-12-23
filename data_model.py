@@ -3,7 +3,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy, event
 from flask_user import UserMixin
 from datetime import datetime
-from sqlalchemy import and_
+from sqlalchemy import and_, not_
 from geoalchemy2.types import Geometry
 from flask_user import current_user
 
@@ -16,7 +16,7 @@ def getUserId():
     return current_user.id
 
 def getUploadProfileId():
-    return db.session.query(Profile.id).filter(and_(not(Profile.is_administrator),Profile.can_upload)).first()[0]
+    return db.session.query(Profile.id).filter(and_(not_(Profile.is_administrator),Profile.can_upload)).first()[0]
 
 
 class BlobMixin(object):
