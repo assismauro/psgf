@@ -1,3 +1,4 @@
+from gettext import gettext
 import json
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy, event
@@ -6,6 +7,7 @@ from datetime import datetime
 from sqlalchemy import and_, not_
 from geoalchemy2.types import Geometry
 from flask_user import current_user
+from flask_babel import lazy_gettext
 
 app = Flask(__name__)
 app.config.from_pyfile('config.cfg')
@@ -31,6 +33,9 @@ class BlobMixin(object):
 
 class ProjectePdf(db.Model, BlobMixin):
     __tablename__ = u'projecte_pdf'
+    label = lazy_gettext('Project PDF file')
+    column_labels = dict(name=lazy_gettext('Name'),user=lazy_gettext('User'))
+
     id = db.Column(db.Integer(), db.Sequence('public.projecte_map_id_seq'), primary_key=True, nullable=False)
     name = db.Column(db.String(255),nullable=False)
     user_id = db.Column(db.Integer(), db.ForeignKey('user.id'), default=getUserId)
@@ -42,6 +47,7 @@ class ProjectePdf(db.Model, BlobMixin):
 
 class ProjecteMap(db.Model):
     __tablename__ = u'projecte_map'
+    label = lazy_gettext('Project Map')
 
     id = db.Column(db.Integer(), db.Sequence('public.projecte_map_id_seq'), primary_key=True, nullable=False)
     nom = db.Column(db.String(255),nullable=False)
@@ -55,7 +61,7 @@ class ProjecteMap(db.Model):
 
 class Profile(db.Model):
     __tablename__ = u'profile'
-    # db.Column definitions
+
     id = db.Column(db.Integer(), db.Sequence('public.profile_id_seq'), primary_key=True, nullable=False)
     profilename = db.Column(db.String(255), nullable=False, unique=True)
     is_administrator = db.Column(db.Boolean(), nullable=False)
@@ -74,7 +80,7 @@ def insert_initial_profiles(*args, **kwargs):
 # region Tables definition
 class User(db.Model, UserMixin):
     __tablename__ = u'user'
-    # db.Column definitions
+
     id = db.Column(db.Integer,db.Sequence('public.actuacions_descripcio_id_seq'), nullable=False, primary_key=True)
     username = db.Column(db.String(20),nullable=False,unique=True)
     password = db.Column(db.String(255), nullable=False, server_default='')
@@ -95,7 +101,7 @@ def insert_administrator_user(*args, **kwargs):
                         password=u'$2b$12$fTbRZzCD18t/EU/2nrXSF.O0WqjImRUuSEV9HW1jay1rmc5TDCnzq',
                         active=True,
                         email='assismauro@hotmail.com',
-                        confirmed_at=datetime.now().strftime("%Y-%m-%d"),
+                        confirmed_at=datetime.now(),
                         profile_id=administrator_profile_id)
         db.session.add(adm_user)
         db.session.commit()
@@ -106,7 +112,6 @@ event.listen(User.__table__, 'after_create', insert_administrator_user)
 class ActuacionsDescripcio(db.Model):
     __tablename__ = u'actuacions_descripcio'
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.actuacions_descripcio_id_seq'), primary_key=True, nullable=False)
     nom_actuacio = db.Column(db.String(4096))
     cost_ha = db.Column(db.Integer())
@@ -124,8 +129,8 @@ class ActuacionsDescripcio(db.Model):
 
 class ActuacionsDelPla(db.Model):
     __tablename__ = u'actuacions_del_pla'
+    label = lazy_gettext('Planning Performances')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.actuacions_del_pla_id_seq'), primary_key=True, nullable=False)
     plaord_forestal_id = db.Column(db.Integer(), db.ForeignKey('plaord_forestal.id'))
     rodal_id = db.Column(db.Integer(), db.ForeignKey('rodal.id'))
@@ -171,8 +176,8 @@ class ActuacionsDelPla(db.Model):
 
 class AltresAfectacionsLegals(db.Model):
     __tablename__ = u'altres_afectacions_legals'
+    label = lazy_gettext('Other Legal Affections')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.altres_afectacions_legals_id_seq'), primary_key=True, nullable=False)
     tipus_id = db.Column(db.String(255))
     nom = db.Column(db.String(255))
@@ -194,8 +199,8 @@ class AltresAfectacionsLegals(db.Model):
 
 class Despeses(db.Model):
     __tablename__ = u'despeses'
+    label = lazy_gettext('Expenses')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.despeses_id_seq'), primary_key=True, nullable=False)
     actuacio_id = db.Column(db.Integer())
     rodal_id = db.Column(db.Integer())
@@ -223,8 +228,8 @@ class Despeses(db.Model):
 
 class Inventari(db.Model):
     __tablename__ = u'inventari'
+    lable = lazy_gettext('Inventories')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.inventari_id_seq'), primary_key=True, nullable=False)
     rodal = db.Column(db.Integer())
     tipus_inventari = db.Column(db.String(255))
@@ -246,6 +251,7 @@ class Inventari(db.Model):
 
 class PlaordProp(db.Model):
     __tablename__ = u'plaord_prop'
+    label = lazy_gettext('Planning Ord Prop')
 
     # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.plaord_prop_id_seq'), primary_key=True, nullable=False)
@@ -263,8 +269,8 @@ class PlaordProp(db.Model):
 
 class PlaordForestal(db.Model):
     __tablename__ = u'plaord_forestal'
+    label = lazy_gettext('Planning Ord Forest')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.plaord_forestal_id_seq'), primary_key=True, nullable=False)
     nom = db.Column(db.String(255))
     numero = db.Column(db.Integer())
@@ -335,8 +341,8 @@ class PlaordForestal(db.Model):
 
 class PropietariDades(db.Model):
     __tablename__ = u'propietari_dades'
+    label = lazy_gettext('Owner Data')
 
-    # db.Column definitions
     ordre = db.Column(db.Integer())
     dni = db.Column(db.Integer(), nullable=False)
     nom = db.Column(db.String(255))
@@ -358,7 +364,7 @@ class PropietariDades(db.Model):
 class DadesPropietat(db.Model):
     __tablename__ = u'dades_propietat'
 
-    # db.Column definitions
+    label = lazy_gettext('Property Data')
     id = db.Column(db.Integer(), db.Sequence('public.dades_propietat_id_seq'), primary_key=True, nullable=False)
     nom = db.Column(db.String(255))
     cif = db.Column(db.Integer())
@@ -378,8 +384,8 @@ class DadesPropietat(db.Model):
 
 class Tipusdepla(db.Model):
     __tablename__ = u'tipusdepla'
+    label = lazy_gettext('Planning Data')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.tipusdepla_id_seq'), primary_key=True, nullable=False)
     campo1 = db.Column(db.String(255))
 
@@ -393,8 +399,8 @@ class Tipusdepla(db.Model):
 
 class TipusQualificacioEspecial(db.Model):
     __tablename__ = u'tipus_qualificacio_especial'
+    label = lazy_gettext('Special Qualification Types')
 
-    # db.Column definitions
     tipus_id = db.Column(db.String(255))
     nom_extens = db.Column(db.String(255))
     id = db.Column(db.Integer(), db.Sequence('public.tipus_qualificacio_especial_id_seq'), primary_key=True, nullable=False)
@@ -410,8 +416,8 @@ class TipusQualificacioEspecial(db.Model):
 
 class AltresActuacionsDelPla(db.Model):
     __tablename__ = u'altres_actuacions_del_pla'
+    label = lazy_gettext('Plan Other Players')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.altres_actuacions_del_pla_id_seq'), primary_key=True, nullable=False)
     nom = db.Column(db.String(255))
 
@@ -425,8 +431,8 @@ class AltresActuacionsDelPla(db.Model):
 
 class IngresActuacions(db.Model):
     __tablename__ = u'ingres_actuacions'
+    label = lazy_gettext('Peorformance Query')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.ingres_actuacions_id_seq'), primary_key=True, nullable=False)
     actuacio_id = db.Column(db.Integer())
     rodal_id = db.Column(db.Integer())
@@ -454,8 +460,8 @@ class IngresActuacions(db.Model):
 
 class ResultatsInventariFusta(db.Model):
     __tablename__ = u'resultats_inventari_fusta'
+    label = lazy_gettext('Wood Inventory Results')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.resultats_inventari_fusta_id_seq'), primary_key=True, nullable=False)
     id_rodal = db.Column(db.Integer())
     any = db.Column(db.Integer())
@@ -499,8 +505,8 @@ class ResultatsInventariFusta(db.Model):
 
 class QualificacionsEspecials(db.Model):
     __tablename__ = u'qualificacions_especials'
+    label = lazy_gettext('Special Qualifications')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.qualificacions_especials_id_seq'), primary_key=True, nullable=False)
     tipus_id = db.Column(db.Integer(),db.ForeignKey('qualificacions_especials.id'))
     nom = db.Column(db.String(255))
@@ -526,8 +532,8 @@ class QualificacionsEspecials(db.Model):
 
 class TipusAfectacioLegal(db.Model):
     __tablename__ = u'tipus_afectacio_legal'
+    label = lazy_gettext('Legal Affection Types')
 
-    # db.Column definitions
     tipus_id = db.Column(db.Integer())
     nom_extens = db.Column(db.String(255))
     id = db.Column(db.Integer(), db.Sequence('public.tipus_afectacio_legal_id_seq'), primary_key=True, nullable=False)
@@ -543,6 +549,7 @@ class TipusAfectacioLegal(db.Model):
 
 class PersonaDeContacte(db.Model):
     __tablename__ = u'persona_de_contacte'
+    label = lazy_gettext('Contact Person')
 
     # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.persona_de_contacte_id_seq'), primary_key=True, nullable=False)
@@ -567,8 +574,8 @@ class PersonaDeContacte(db.Model):
 
 class TipusDeTramit(db.Model):
     __tablename__ = u'tipus_de_tramit'
+    label = lazy_gettext('Procedure Type')
 
-    # db.Column definitions
     descripcio = db.Column(db.String(4096), nullable=False)
     id = db.Column(db.Integer(), db.Sequence('tipus_de_tramit_id_seq'), primary_key=True, nullable=False)
 
@@ -584,8 +591,8 @@ class TipusDeTramit(db.Model):
 
 class Tramit(db.Model):
     __tablename__ = u'tramit'
+    label = lazy_gettext('Procedure Types')
 
-    # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.id_tramit_id_seq'), primary_key=True, nullable=False)
     id_tramit = db.Column(db.Integer(),db.ForeignKey('tipus_de_tramit.id'), nullable=False)
     id_personacontacte = db.Column(db.Integer(),db.ForeignKey('persona_de_contacte.id'), nullable=False)
@@ -608,6 +615,7 @@ class Tramit(db.Model):
 
 class Rodal(db.Model):
     __tablename__ = u'rodal'
+    label = lazy_gettext('Stand')
 
     # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.rodal_id_seq'), primary_key=True, nullable=False)
@@ -641,6 +649,7 @@ class Rodal(db.Model):
 
 class Forest(db.Model):
     __tablename__ = u'forest'
+    label = lazy_gettext('Forest')
 
     # db.Column definitions
     id = db.Column(db.Integer(), db.Sequence('public.forest_id_seq'), primary_key=True, nullable=False)

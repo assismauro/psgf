@@ -1,0 +1,540 @@
+# Spanish translations for PROJECT.
+# Copyright (C) 2020 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2020-12-29 10:21-0300\n"
+"PO-Revision-Date: 2020-12-28 21:52-0300\n"
+"Last-Translator: \n"
+"Language: es\n"
+"Language-Team: es <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.9.0\n"
+
+#: app.py:70
+msgid "profilename"
+msgstr "Nombre del Perfil"
+
+#: app.py:71
+msgid "is_administrator"
+msgstr "Es administrador"
+
+#: app.py:72
+msgid "can_upload"
+msgstr "Puede cargar"
+
+#: app.py:75
+msgid "username"
+msgstr "Nombre de usuario"
+
+#: app.py:76
+msgid "password"
+msgstr "Contraseña"
+
+#: app.py:77
+msgid "active"
+msgstr "Activo"
+
+#: app.py:78
+msgid "email"
+msgstr "Email"
+
+#: app.py:79
+msgid "confirmed_at"
+msgstr "Confirmado en"
+
+#: app.py:80
+msgid "profile"
+msgstr "Perfil"
+
+#: app.py:119 test/UploadTest.py:83
+msgid "Invalid file extension"
+msgstr "Extensión de archivo inválida"
+
+#: app.py:170
+msgid "Project"
+msgstr "Proyecto"
+
+#: app.py:171
+msgid "Administration"
+msgstr "Administración"
+
+#: app.py:175
+msgid "Profile"
+msgstr "Perfil"
+
+#: app.py:176 data_model.py:37
+msgid "User"
+msgstr "Usuario"
+
+#: data_model.py:36
+msgid "Project PDF file"
+msgstr "Archivo PDF de proyecto"
+
+#: data_model.py:37
+msgid "Name"
+msgstr "Nombre"
+
+#: data_model.py:50
+msgid "Project Map"
+msgstr "Mapa del proyecto"
+
+#: data_model.py:132
+msgid "Planning Performances"
+msgstr "Rendimientos de planificación"
+
+#: data_model.py:179
+msgid "Other Legal Affections"
+msgstr "Otros afectos legales"
+
+#: data_model.py:202
+msgid "Expenses"
+msgstr "Gastos"
+
+#: data_model.py:231
+msgid "Inventories"
+msgstr "Inventarios"
+
+#: data_model.py:254
+msgid "Planning Ord Prop"
+msgstr "Planificación de Ord Prop"
+
+#: data_model.py:272
+msgid "Planning Ord Forest"
+msgstr "Planificación de Ord Forest"
+
+#: data_model.py:344
+msgid "Owner Data"
+msgstr "Datos del propietario"
+
+#: data_model.py:367
+msgid "Property Data"
+msgstr "Datos de propiedad"
+
+#: data_model.py:387
+msgid "Planning Data"
+msgstr "Datos de planificación"
+
+#: data_model.py:402
+msgid "Special Qualification Types"
+msgstr "Tipos de cualificación especial"
+
+#: data_model.py:419
+msgid "Plan Other Players"
+msgstr "Planifica a otros jugadores"
+
+#: data_model.py:434
+msgid "Peorformance Query"
+msgstr "Consulta de peorformance"
+
+#: data_model.py:463
+msgid "Wood Inventory Results"
+msgstr "Resultados del inventario de madera"
+
+#: data_model.py:508
+msgid "Special Qualifications"
+msgstr "Calificaciones especiales"
+
+#: data_model.py:535
+msgid "Legal Affection Types"
+msgstr "Tipos de afecto legal"
+
+#: data_model.py:552
+msgid "Contact Person"
+msgstr "Persona de contacto"
+
+#: data_model.py:577
+msgid "Procedure Type"
+msgstr "Tipo de procedimiento"
+
+#: data_model.py:594
+msgid "Procedure Types"
+msgstr "Tipos de procedimiento"
+
+#: data_model.py:618
+msgid "Stand"
+msgstr "Rodal"
+
+#: data_model.py:652
+msgid "Forest"
+msgstr "Bosque"
+
+#: templates/base.html:40
+msgid "Sign out"
+msgstr "Desconectar"
+
+#: templates/base.html:42 templates/flask_user/login.html:5
+#: templates/flask_user/login_or_register.html:9
+msgid "Sign in"
+msgstr "Registrarse"
+
+#: templates/base.html:48
+msgid "Home page"
+msgstr "Página de inicio"
+
+#: templates/admin/index.html:43
+msgid "Login"
+msgstr "Iniciar sesión"
+
+#: templates/admin/index.html:49
+msgid "Click here to login or register in the portal"
+msgstr "Haga clic aquí para iniciar sesión o registrarse en el portal"
+
+#: templates/admin/index.html:64
+msgid "Add project"
+msgstr "Agregar proyecto"
+
+#: templates/admin/index.html:70
+msgid "Click here to upload a project"
+msgstr "Haga clic aquí para cargar un proyecto"
+
+#: templates/admin/index.html:85
+msgid "Logout"
+msgstr "Cerrar sesión"
+
+#: templates/admin/index.html:91
+msgid "Click here to logout of the portal"
+msgstr "Haga clic aquí para cerrar la sesión del portal"
+
+#: templates/admin/model/create.html:14 templates/admin/model/details.html:8
+#: templates/admin/model/edit.html:14 templates/admin/model/list.html:17
+msgid "List"
+msgstr "Lista"
+
+#: templates/admin/model/create.html:17 templates/admin/model/details.html:12
+#: templates/admin/model/edit.html:18 templates/admin/model/list.html:23
+#: templates/admin/model/list.html:25
+msgid "Create"
+msgstr "Crear"
+
+#: templates/admin/model/details.html:17 templates/admin/model/edit.html:22
+msgid "Edit"
+msgstr "Editar"
+
+#: templates/admin/model/details.html:21 templates/admin/model/edit.html:26
+msgid "Details"
+msgstr "Detalles"
+
+#: templates/admin/model/details.html:28
+msgid "Filter"
+msgstr "Filtrar"
+
+#: templates/admin/model/inline_list_base.html:14
+msgid "Delete?"
+msgstr "¿Eliminar?"
+
+#: templates/admin/model/inline_list_base.html:16
+#: templates/admin/model/inline_list_base.html:35
+#: templates/admin/model/row_actions.html:34
+msgid "Are you sure you want to delete this record?"
+msgstr "¿Está seguro de que desea eliminar este registro?"
+
+#: templates/admin/model/inline_list_base.html:33
+msgid "New"
+msgstr "Nuevo"
+
+#: templates/admin/model/inline_list_base.html:43
+msgid "Add"
+msgstr "Añadir"
+
+#: templates/admin/model/layout.html:3
+msgid "Add Filter"
+msgstr "Añadir filtro"
+
+#: templates/admin/model/layout.html:18 templates/admin/model/layout.html:23
+#: templates/admin/model/layout.html:30
+msgid "Export"
+msgstr "Exportar"
+
+#: templates/admin/model/layout.html:53
+msgid "Apply"
+msgstr "Aplicar"
+
+#: templates/admin/model/layout.html:55
+msgid "Reset Filters"
+msgstr "Eliminar filtros"
+
+#: templates/admin/model/layout.html:81
+msgid "Search"
+msgstr "Buscar"
+
+#: templates/admin/model/layout.html:100 templates/admin/model/layout.html:103
+#: templates/admin/model/layout.html:104 templates/admin/model/layout.html:105
+msgid "items"
+msgstr "artículos"
+
+#: templates/admin/model/list.html:23 templates/admin/model/list.html:25
+msgid "Create New Record"
+msgstr "Crear nuevo registro"
+
+#: templates/admin/model/list.html:76
+msgid "Select all records"
+msgstr "Seleccionar todos los registros"
+
+#: templates/admin/model/list.html:89 templates/admin/model/list.html:98
+#, python-format
+msgid "Sort by %(name)s"
+msgstr "Ordenar por %(name)s"
+
+#: templates/admin/model/list.html:119
+msgid "Select record"
+msgstr "Seleccionar registro"
+
+#: templates/admin/model/list.html:194
+msgid "Please select at least one record."
+msgstr "Seleccione al menos un registro."
+
+#: templates/admin/model/row_actions.html:34
+msgid "Delete record"
+msgstr "Eliminar el registro"
+
+#: templates/flask_user/change_password.html:5
+#: templates/flask_user/user_profile.html:11
+#, fuzzy
+msgid "Change password"
+msgstr "Contraseña"
+
+#: templates/flask_user/change_username.html:5
+#: templates/flask_user/user_profile.html:8
+#, fuzzy
+msgid "Change username"
+msgstr "Nombre de usuario"
+
+#: templates/flask_user/forgot_password.html:5
+#, fuzzy
+msgid "Forgot Password"
+msgstr "Contraseña"
+
+#: templates/flask_user/invite.html:5
+msgid "Invite User"
+msgstr ""
+
+#: templates/flask_user/login.html:21
+msgid "New here? Register."
+msgstr ""
+
+#: templates/flask_user/login.html:44
+#: templates/flask_user/login_or_register.html:34
+msgid "Forgot your Password?"
+msgstr ""
+
+#: templates/flask_user/login_or_register.html:41
+#: templates/flask_user/register.html:5
+msgid "Register"
+msgstr ""
+
+#: templates/flask_user/manage_emails.html:5
+msgid "Manage Emails"
+msgstr ""
+
+#: templates/flask_user/register.html:21
+msgid "Already registered? Sign in."
+msgstr ""
+
+#: templates/flask_user/resend_confirm_email.html:5
+msgid "Resend Confirmation Email"
+msgstr ""
+
+#: templates/flask_user/reset_password.html:5
+#, fuzzy
+msgid "Reset Password"
+msgstr "Contraseña"
+
+#: templates/flask_user/user_profile.html:5
+#, fuzzy
+msgid "User profile"
+msgstr "Perfil"
+
+#: venv/Lib/site-packages/flask_wtf/file.py:50
+#: venv/Lib/site-packages/wtforms/validators.py:218
+#: venv/Lib/site-packages/wtforms/validators.py:258
+msgid "This field is required."
+msgstr "Este campo es requerido."
+
+#: venv/Lib/site-packages/flask_wtf/file.py:83
+msgid "File does not have an approved extension: {extensions}"
+msgstr "El archivo no tiene una extensión aprobada: {extensions}"
+
+#: venv/Lib/site-packages/flask_wtf/file.py:88
+msgid "File does not have an approved extension."
+msgstr "El archivo no tiene una extensión aprobada."
+
+#: venv/Lib/site-packages/wtforms/validators.py:68
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr "Nombre de campo no válido '% s'."
+
+#: venv/Lib/site-packages/wtforms/validators.py:76
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr "El campo debe ser igual a %(other_name)s."
+
+#: venv/Lib/site-packages/wtforms/validators.py:109
+#, fuzzy, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] "El campo debe tener al menos %(min)d caracteres."
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:112
+#, fuzzy, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] "El campo no puede tener más de %(máx.)d caracteres."
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:115
+#, fuzzy, python-format
+msgid "Field must be exactly %(max)d character long."
+msgid_plural "Field must be exactly %(max)d characters long."
+msgstr[0] "El campo debe tener exactamente %(máx.)d caracteres."
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:118
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr "El campo debe tener entre %(min)d y %(max)d caracteres."
+
+#: venv/Lib/site-packages/wtforms/validators.py:154
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr "El número debe ser al menos %(min)s."
+
+#: venv/Lib/site-packages/wtforms/validators.py:156
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr "El número debe ser como máximo %(máx.)s."
+
+#: venv/Lib/site-packages/wtforms/validators.py:158
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr "El número debe estar entre %(min)s y %(max)s."
+
+#: venv/Lib/site-packages/wtforms/validators.py:290
+msgid "Invalid input."
+msgstr "Entrada inválida."
+
+#: venv/Lib/site-packages/wtforms/validators.py:355
+msgid "Invalid email address."
+msgstr "Dirección de correo electrónico inválida."
+
+#: venv/Lib/site-packages/wtforms/validators.py:388
+msgid "Invalid IP address."
+msgstr "Dirección IP inválida."
+
+#: venv/Lib/site-packages/wtforms/validators.py:430
+msgid "Invalid Mac address."
+msgstr "Dirección Mac no válida."
+
+#: venv/Lib/site-packages/wtforms/validators.py:465
+msgid "Invalid URL."
+msgstr "URL invalida."
+
+#: venv/Lib/site-packages/wtforms/validators.py:485
+msgid "Invalid UUID."
+msgstr "UUID no válido."
+
+#: venv/Lib/site-packages/wtforms/validators.py:515
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr "Valor no válido, debe ser uno de: %(values)s."
+
+#: venv/Lib/site-packages/wtforms/validators.py:547
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr "Valor no válido, no puede ser ninguno de: %(values) s."
+
+#: venv/Lib/site-packages/wtforms/csrf/core.py:98
+#: venv/Lib/site-packages/wtforms/ext/csrf/form.py:47
+msgid "Invalid CSRF Token"
+msgstr "Token CSRF no válido"
+
+#: venv/Lib/site-packages/wtforms/csrf/session.py:61
+#: venv/Lib/site-packages/wtforms/ext/csrf/session.py:58
+msgid "CSRF token missing"
+msgstr "Falta el token CSRF"
+
+#: venv/Lib/site-packages/wtforms/csrf/session.py:69
+#: venv/Lib/site-packages/wtforms/ext/csrf/session.py:66
+msgid "CSRF failed"
+msgstr "CSRF falló"
+
+#: venv/Lib/site-packages/wtforms/csrf/session.py:74
+#: venv/Lib/site-packages/wtforms/ext/csrf/session.py:71
+msgid "CSRF token expired"
+msgstr "Token CSRF caducado"
+
+#: venv/Lib/site-packages/wtforms/ext/appengine/fields.py:87
+#: venv/Lib/site-packages/wtforms/ext/appengine/fields.py:164
+#: venv/Lib/site-packages/wtforms/ext/appengine/fields.py:166
+#: venv/Lib/site-packages/wtforms/ext/django/fields.py:95
+#: venv/Lib/site-packages/wtforms/ext/sqlalchemy/fields.py:125
+#: venv/Lib/site-packages/wtforms/ext/sqlalchemy/fields.py:127
+#: venv/Lib/site-packages/wtforms/ext/sqlalchemy/fields.py:180
+#: venv/Lib/site-packages/wtforms/ext/sqlalchemy/fields.py:185
+#: venv/Lib/site-packages/wtforms/fields/core.py:513
+msgid "Not a valid choice"
+msgstr "No es una eleccion valida"
+
+#: venv/Lib/site-packages/wtforms/ext/appengine/fields.py:185
+msgid "Not a valid list"
+msgstr "No es una lista válida"
+
+#: venv/Lib/site-packages/wtforms/ext/appengine/fields.py:204
+msgid "Not a valid integer list"
+msgstr "No es una lista de enteros válida"
+
+#: venv/Lib/site-packages/wtforms/ext/dateutil/fields.py:63
+msgid "Please input a date/time value"
+msgstr "Ingrese un valor de fecha / hora"
+
+#: venv/Lib/site-packages/wtforms/ext/dateutil/fields.py:75
+#: venv/Lib/site-packages/wtforms/ext/dateutil/fields.py:83
+msgid "Invalid date/time input"
+msgstr "Entrada de fecha/hora no válida"
+
+#: venv/Lib/site-packages/wtforms/fields/core.py:505
+msgid "Invalid Choice: could not coerce"
+msgstr "Elección no válida: no se pudo coaccionar"
+
+#: venv/Lib/site-packages/wtforms/fields/core.py:539
+msgid "Invalid choice(s): one or more data inputs could not be coerced"
+msgstr "Elección no válida: no se pudo coaccionar"
+
+#: venv/Lib/site-packages/wtforms/fields/core.py:546
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field"
+msgstr "'%(value)s' no es una opción válida para este campo"
+
+#: venv/Lib/site-packages/wtforms/fields/core.py:629
+#: venv/Lib/site-packages/wtforms/fields/core.py:639
+msgid "Not a valid integer value"
+msgstr "No es un valor entero válido"
+
+#: venv/Lib/site-packages/wtforms/fields/core.py:705
+msgid "Not a valid decimal value"
+msgstr "No es un valor decimal válido"
+
+#: venv/Lib/site-packages/wtforms/fields/core.py:732
+msgid "Not a valid float value"
+msgstr "No es un valor flotante válido"
+
+#: venv/Lib/site-packages/wtforms/fields/core.py:793
+msgid "Not a valid datetime value"
+msgstr "No es un valor de fecha y hora válido"
+
+#: venv/Lib/site-packages/wtforms/fields/core.py:810
+msgid "Not a valid date value"
+msgstr "No es un valor de fecha válido"
+
+#: venv/Lib/site-packages/wtforms/fields/core.py:827
+msgid "Not a valid time value"
+msgstr "No es un valor de tiempo válido"
+
