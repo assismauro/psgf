@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<!-- Custom view: https://www.youtube.com/watch?v=BIcjT2Zz4bU -->
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script>
+        async function callback() {
+            let Pla = document.getElementById('plas');
+            let Classe = document.getElementById('classes');
+            let Baselayer = document.getElementById('baselayer')
+            let pla_id = Pla.options[Pla.selectedIndex].value;
+            let classe = Classe.options[Classe.selectedIndex].value;
+            let baselayer = Baselayer.options[Baselayer.selectedIndex].value
+            let response = await fetch(`/callback/getMap?&pla_id=${pla_id}&class=${classe}&baselayer=${baselayer}`);
+            if (response.ok) {
+                let mapJson = await response.json();
+                if (response.ok) {
+                    Plotly.react('map', JSON.parse(mapJson['Map']), {});
+                } else {
+                    alert("HTTP-Error: " + response.status + "on getInfo");
+                }
+            } else {
+                alert("HTTP-Error: " + response.status + "on getState");
+            }
+        }
+    </script>
+
+</head>
+
+{% extends 'admin/master.html' %}
+{%  block body %}
+     <div class="container">
+        <div class="row">
+            <div class="col">
+                <label for="pla-select">Pla:</label>
+                <select id="plas" name="pla-select" class="form-select" aria-label="Select" onchange="callback()">
+                   {% for key, value in plas.items() %}
+                        <option value="{{ key }}">
+                            {{ value }}</option>
+                    {%  endfor %}
+                </select>
+            </div>
+            <div class="col">
+                 <label for="classes-select">Classe:</label>
+                <select id="classes" name="classes-select" class="form-select" aria-label="Select" onchange="callback()">
+                   {% for key, value in classes.items() %}
+                        <option value="{{ key }}">
+                            {{ value }}</option>
+                    {%  endfor %}
+                </select>
+            </div>
+            <div class="col">
+                 <label for="baselayer-select">Base map:</label>
+                <select id="baselayer" name="baselayer-select" class="form-select" aria-label="Select" onchange="callback()">
+                    <option value="orto">Ortophoto</option>
+                    <option value="topo">Topographic</option>
+                </select>
+            </div>
+            <div class="row-9">
+                <div id="map" class="chart" style="height: 800px"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>callback();</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+{%  endblock body %}

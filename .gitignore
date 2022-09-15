@@ -1,0 +1,5 @@
+exe/
+tempfiles/
+test/
+upload_test/
+venv/

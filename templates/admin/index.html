@@ -1,0 +1,100 @@
+<!-- https://flask-admin.readthedocs.io/en/v1.0.7/templates/ -->
+{% extends 'admin/master.html' %}
+{% block title %}
+    Plans de Gestió Florestal
+{% endblock %}
+{% block brand %}
+     <img src="static/ctfc_logo.png" width="50" height="50">
+{% endblock %}
+{% block access_control %}
+    <div>
+    <p style="text-align:right;"><br />
+    <a href="{{ url_for('user.logout') }}" alt="Logout">{{current_user.username}}</a>
+    </p>
+    </div>
+{% endblock %}
+{% block head_css %}
+{{ super() }}
+        <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        .center-fit {
+            max-width: 100%;
+            max-height: 100vh;
+            margin: auto;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+
+                 <div class="col-lg-4 col-md-12">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-xs-3">
+                                    <i class="fa fa-comments fa-5x"></i>
+                                </div>
+                                <div class="col-xs-9 text-right">
+                                    <div class="large">{{ _('Login') }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('user.login') }}">
+                            <div class="panel-footer">
+                                <span class="pull-left">{{ _('Click here to login or register in the portal') }}.</span>
+                                <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                                <div class="clearfix"></div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+               <div class="col-lg-4 col-md-12">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-xs-3">
+                                    <i class="fa fa-comments fa-5x"></i>
+                                </div>
+                                <div class="col-xs-9 text-right">
+                                    <div class="large">{{ _('Add project') }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('projectezip.index_view') }}">
+                            <div class="panel-footer">
+                                <span class="pull-left">{{ _('Click here to upload a project') }}.</span>
+                                <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                                <div class="clearfix"></div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-12">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-xs-3">
+                                    <i class="fa fa-comments fa-5x"></i>
+                                </div>
+                                <div class="col-xs-9 text-right">
+                                    <div class="large">{{ _('Logout') }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('user.logout') }}">
+                            <div class="panel-footer">
+                                <span class="pull-left">{{ _('Click here to logout of the portal') }}.</span>
+                                <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                                <div class="clearfix"></div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                <img style="position: relative; display: inline-block; left: 50%; transform: translate(-50%);" src ="{{ url_for('static', filename='forest.png') }}" />
+                </div>
+{% endblock %}

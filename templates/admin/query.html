@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- Custom view: https://www.youtube.com/watch?v=BIcjT2Zz4bU -->
+
+<head>
+    <meta charset="UTF-8">
+    <title>Plans de Gestió Florestal</title>
+    <script>
+        async function callback() {
+            let Filter = document.getElementById('filter');
+            let FilterValue = Filter.options[Filter.selectedIndex].value;
+            let Response = await fetch("/callback/getQueryResult?&filter_value=" + FilterValue);
+            if (Response.ok) {
+                let mapJson = await Response.json();
+                if (Response.ok) {
+                    Plotly.react('map', JSON.parse(mapJson['Map']), {});
+                } else {
+                    alert("HTTP-Error: " + Response.status + "on callback");
+                }
+            } else {
+                alert("HTTP-Error: " + Response.status + "on getStatecallback");
+            }
+        }
+    </script>
+</head>
+
+{% extends 'admin/master.html' %}
+{%  block body %}
+     <div class="container">
+        <div class="row">
+            <div class="col">
+                <label for="filter">Select:</label>
+                <select id="filter" name="filter" class="form-select" aria-label="Select" onchange="callback()">
+                   {% for key, value in filter.items() %}
+                        <option value="{{ key }}">
+                            {{ value }}</option>
+                    {%  endfor %}
+                </select>
+            </div>
+            <div class="row-9">
+                <div id="map" class="chart" style="height: 800px"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        callback();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+{%  endblock body %}

@@ -1,0 +1,18 @@
+Abrir janela do DOS
+SET PATH=d:\python;d:\python\Scripts;%PATH%
+d:
+cd D:\Atrium\Projects\CTFC\psgf
+venv\Scripts\activate
+pybabel extract -F babel.cfg -k lazy_gettext  -k _gettext -o psgf.pot .
+pybabel update -i psgf.pot -d translations -l es
+pybabel update -i psgf.pot -d translations -l ca
+pybabel update -i psgf.pot -d translations -l en
+pybabel compile -d translations
+
+
+
+flask db init
+flask db migrate
+import geoalchemy2
+flask db upgrade
+

@@ -1,0 +1,4 @@
+
+java --version
+# Gera, na mesma pasta e nome (mas com extensão XML), os XML encontrados no PDF
+java -cp "./:./repository/*" Pdf2Xml uploads/Solsones.pdf [password***]

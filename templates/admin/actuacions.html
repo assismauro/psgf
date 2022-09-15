@@ -1,0 +1,126 @@
+<!-- Custom view: https://www.youtube.com/watch?v=BIcjT2Zz4bU -->
+<!-- Download file: https://www.delftstack.com/howto/javascript/javascript-download/ -->
+<head>
+    <meta charset="UTF-8">
+    <script>
+        function doDownload(pUrl) {
+            axios({
+                url: pUrl,
+                method: 'GET',
+                responseType: 'blob'
+            })
+                .then((response) => {
+                    const url = window.URL
+                        .createObjectURL(new Blob([response.data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', 'psgf.xlsx');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                })
+        }
+
+        async function callback(download = false) {
+            let Pla = document.getElementById('plas');
+            let Baselayer = document.getElementById('baselayer');
+            let startyear = document.getElementById('startyear').value;
+            let endyear = document.getElementById('endyear').value;
+            let actuacions = document.getElementById('actuacions').value;
+            let pla_id = Pla.options[Pla.selectedIndex].value;
+            let baselayer = Baselayer.options[Baselayer.selectedIndex].value;
+            let url = `/callback/showActuacion?&pla_id=${pla_id}&baselayer=${baselayer}` +
+                `&startyear=${startyear}&endyear=${endyear}&actuacions=${actuacions}&download=${download}`;
+            if (download) {
+                doDownload(url)
+                return
+            }
+            let response = await fetch(url);
+            if (response.ok) {
+                let retJson = await response.json();
+                if (response.ok) {
+                    Plotly.react('map', JSON.parse(retJson['Map']), {});
+                    Plotly.react('table', JSON.parse(retJson['TableJSON']), {});
+                } else {
+                    alert("HTTP-Error: " + response.status + "on getInfo");
+                }
+            } else {
+                alert("HTTP-Error: " + response.status + "on getState");
+            }
+        }
+
+    </script>
+
+</head>
+
+{% extends 'admin/master.html' %}
+{% block body %}
+    <div class="container">
+        <div class="row">
+             <div class="col">
+                <label for="actuacions-selected">Actuacions periòdiques:</label>
+                <select id="actuacions" name="actuacions-selected" class="form-select" aria-label="Select"
+                        onchange="callback(false)">
+                    <option value="primera" selected="selected">Mostrar la primera actuació de la sèrie</option>
+                    <option value="totes">Mostrar totes actuaciós</option>
+                </select>
+            </div>
+            <div class="col">
+                <label for="pla-select">Pla:</label>
+                <select id="plas" name="pla-select" class="form-select" aria-label="Select" onchange="callback(false)">
+                    {% for key, value in plas.items() %}
+                        <option value="{{ key }}" {{ 'selected' if key == 0 }}>
+                            {{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <label for="startyear-select">Any d'inici:</label>
+                <select id="startyear" name="startyear-select" class="form-select" aria-label="Select"
+                        onchange="callback(false)">
+                    {% for key, value in years.items() %}
+                        <option value="{{ key }}">
+                            {{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <label for="endyear-select">Últim any:</label>
+                <select id="endyear" name="endyear-select" class="form-select" aria-label="Select"
+                        onchange="callback(false)">
+                    {% for key, value in years.items() %}
+                        <option value="{{ key }}" {{ 'selected' if key == 2030 }}>
+                            {{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <label for="baselayer-select">Mapa base:</label>
+                <select id="baselayer" name="baselayer-select" class="form-select" aria-label="Select"
+                        onchange="callback(false)">
+                    <option value="orto" selected="selected">Ortophoto</option>
+                    <option value="topo">Topographic</option>
+                </select>
+            </div>
+            <div class="col">
+                <input id="download" type="button" value="Descargar Excel" onclick="callback(true);">
+            </div>
+            <div class="col">
+                <div class="row">
+                    <div id="table" class="datatable" style="height: 600px"></div>
+                </div>
+                <div class="row">
+                    <div id="map" class="chart" style="height: 800px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>callback();</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+{% endblock body %}
