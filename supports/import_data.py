@@ -12,6 +12,7 @@ from supports.merge_geometries_imports import merge_sqls
 import data_model as dm
 import supports.dbquery as dbquery
 import supports.app_object as app_object
+import shutil
 
 pdfPassword = 'Artemis_76'
 
@@ -78,6 +79,20 @@ class ProcessUploadProjectData:
             'XarxaViariaExistent': {'PR': 65, 'PM': 67, 'SC': 69, 'DB': 71},
             'CanviUs': {'TP': 85, 'RM': 87}
         }
+        # dbquery.executeSQL(f"delete from log_import where pla_pdf = '{self.projecteZip.pdf_fname}'")
+        dbquery.executeSQL(f"delete from log_import")
+
+    def send2Log(self, process: str, message: object = '', isError: bool = False):
+        nomPla = self.Pla.nom if self.Pla is not None else self.projecteZip.name
+        message = str(message)
+        log = dm.LogImport(event_timestamp=datetime.now(),
+                           pla_pdf=self.projecteZip.pdf_fname,
+                           nom_pla=nomPla,
+                           process=process,
+                           message=('Error: ' if isError else '') + message)
+        self.session.add(log)
+        self.session.flush()
+        self.session.commit()
 
     def isDict(self, obj):
         return type(obj) == dict or type(obj) == OrderedDict
@@ -172,15 +187,16 @@ class ProcessUploadProjectData:
             return self.session.query(dm.LlistatActuacion).filter(
                 and_(dm.LlistatActuacion.tipus_actuacio == tipus_actuacio,
                      dm.LlistatActuacion.codi == codi)).first().id
-        except:
+        except Exception as e:
+            self.send2Log('getLlistatActuacionIdByTipusCodi', e, True)
             return sql.null()
 
     def getTipusInvetari(self, acronym: str):
         try:
             return self.session.query(dm.TipusInventari).filter(
                 dm.TipusInventari.acronym == acronym).first().id
-        except:
-            return sql.null()
+        except Exception as e:
+            self.send2Log('getTipusInvetari', e, True)
 
     def mergeRodalData(self, toMerge: list) -> dict:
         merged = {}
@@ -199,18 +215,39 @@ class ProcessUploadProjectData:
                             merged[idRodal][ikey] = ivalue
         return merged
 
-    def mergeForestData(self, data: list) -> dict:
+    def mergeForest(self, data: list) -> dict:
         merged = {}
         for item in data:
-            try:
-                if item[0][item[1]] not in merged.keys():
-                    merged[item[0][item[1]]] = {}
-                for key, value in item[0].items():
-                    if key != item[1]:
-                        merged[item[0][item[1]]][key] = value
-            except:
-                pass
+            if len(item) > 1 and type(item[1]) == str:  # old way
+                fincaName = item[1]
+            else:
+                fincaName = 'IdFNomFincaPla'
+            if item[0][fincaName] not in merged.keys():
+                merged[item[0][fincaName]] = {}
+            for key, value in item[0].items():
+                if key != fincaName:
+                    merged[item[0][fincaName]][key] = value
         return merged
+
+    # def mergeForestData(self, data: list) -> dict:
+    #     merged = {}
+    #     for item in data:
+    #         try:
+    #             if item[0][item[1]] not in merged.keys():
+    #                 merged[item[0][item[1]]] = {}
+    #             for key, value in item[0].items():
+    #                 if key != item[1]:
+    #                     merged[item[0][item[1]]][key] = value
+    #         except:
+    #             pass
+    #     return merged
+
+    def fixSubdirsInZip(self, path):
+        for subdir in [f.path for f in os.scandir(path) if f.is_dir()]:
+            filenames = glob(f"{subdir}/*.*")
+            for filename in filenames:
+                shutil.move(filename, path)
+            shutil.rmtree(f"{path}{subdir}", ignore_errors=True)
 
     def renameFiles(self, path, shp_name):
         filenames = glob(f"{path}*.*", recursive=True)  # include .
@@ -221,6 +258,7 @@ class ProcessUploadProjectData:
                 subprocess.call(["mv", filename, newname])
 
     def unpackData(self):
+        self.send2Log('Unpacking data files...')
         if os.path.exists(self.pla_files_path):
             self.shutil.rmtree(self.pla_files_path)
         os.makedirs(self.pla_files_path)
@@ -229,6 +267,7 @@ class ProcessUploadProjectData:
             f.write(self.projecteZip.pdf_blob)
         for shp_name in self.file_contents.keys():
             if self.file_contents[shp_name] is not None:
+                self.send2Log(f'Unpacking {shp_name}')
                 path = f"{self.pla_files_path}{os.sep}{shp_name}{os.sep}"
                 os.mkdir(path)
                 zip_name = f"{path}{shp_name}.zip"
@@ -236,13 +275,16 @@ class ProcessUploadProjectData:
                     f.write(self.file_contents[shp_name])
                 with self.zipfile.ZipFile(zip_name, 'r') as zip_ref:
                     zip_ref.extractall(path)
+                self.fixSubdirsInZip(path)
                 self.renameFiles(path, shp_name)
 
     def importShp(self):
+        self.send2Log('Importing shapefiles...')
         dbquery.executeSQL('delete from import_shp_polygons')
         dbquery.executeSQL('delete from import_shp_lines')
         shpfiles = glob(f"{self.pla_files_path}{os.sep}**{os.sep}*.shp", recursive=True)
         for shpfile in shpfiles:
+            self.send2Log(f'Importing {shpfile}')
             df = self.gpd.read_file(shpfile)
             df = df.to_crs("EPSG:4326")
             df.rename(columns={df.columns[0]: 'field1'}, inplace=True)
@@ -259,22 +301,14 @@ class ProcessUploadProjectData:
                 df.to_postgis(dm.ImportShpPolygons.__tablename__, supportEngine, if_exists='append')
 
     def checkIsUpdateAndClean(self, plaNom, plaVigencia):
+        self.send2Log(f'If {plaNom} was imported before, clear all data about it.')
         if self.session.query(dm.Pla).filter(dm.Pla.nom == plaNom,
                                              dm.Pla.vigencia == self.to_date_time(plaVigencia)).count() > 0:
+            self.send2Log('Removing...')
             Pla = self.session.query(dm.Pla).filter(dm.Pla.nom == plaNom,
                                                     dm.Pla.vigencia == self.to_date_time(plaVigencia)).first()
             self.session.query(dm.Pla).filter(dm.Pla.id == Pla.id).delete()
             self.session.flush()
-
-    def mergeForests(self, data: list) -> dict:
-        merged = {}
-        for item in data:
-            if item[0][item[1]] not in merged.keys():
-                merged[item[0][item[1]]] = {}
-            for key, value in item[0].items():
-                if key != item[1]:
-                    merged[item[0][item[1]]][key] = value
-        return merged
 
     def insertAnyActuacio(self, actuacions_del_pla_id, any_o_priodicitat):
         if any_o_priodicitat < 2000:
@@ -289,76 +323,87 @@ class ProcessUploadProjectData:
         self.session.flush()
 
     def importForestPla(self):
-        plaData = dict(self.XMLDataRoot['DadesPortadaPlaPSGF'])
+        self.send2Log('Importing Pla and Forest data...')
+        try:
+            plaData = dict(self.XMLDataRoot['DadesPortadaPlaPSGF'])
 
-        # Forest
+            # Forest
 
-        IdentFincas = dict(self.XMLDataRoot['DadesGeneralsFinca']['DadesIdentFinca'])['LlistaIdentFinca']
-        InfoFincas = dict(self.XMLDataRoot['DadesGeneralsFinca']['DadesInfoFinca'])['LlistaInfoFinca']
+            IdentFincasA = dict(self.XMLDataRoot['DadesGeneralsFinca']['DadesIdentFinca'])['LlistaIdentFinca']
+            InfoFincasA = dict(self.XMLDataRoot['DadesGeneralsFinca']['DadesInfoFinca'])['LlistaInfoFinca']
+            if type(IdentFincasA) != list:
+                IdentFincasA = [IdentFincasA]
+                InfoFincasA = [InfoFincasA]
+            for i in range(len(IdentFincasA)):
+                IdentFincas = IdentFincasA[i]
+                InfoFincas = InfoFincasA[i]
+                fincas = self.mergeForest([[IdentFincas, 'IdFNomFincaPla'],
+                                           [InfoFincas, 'FINomFincaPla']])
+                for nom, forest in fincas.items():
+                    if self.isDict(forest):
+                        vc = self.converts(forest)
+                        self.Forest = dm.Forest(
+                            forest_nom=nom,
+                            municipi=vc.getValue('IdFMunicipiFinca'),
+                            superficie_ha=vc.getFloat('IdFIdSuperficie')
+                        )
+                    self.session.add(self.Forest)
+                    self.session.flush()
 
-        fincas = self.mergeForestData([[IdentFincas, 'IdFNomFincaPla'],
-                                       [InfoFincas, 'FINomFincaPla']])
-        for nom, forest in fincas.items():
-            if self.isDict(forest):
-                vc = self.converts(forest)
-                self.Forest = dm.Forest(
-                    forest_nom=nom,
-                    municipi=vc.getValue('IdFMunicipiFinca'),
-                    superficie_ha=vc.getFloat('IdFIdSuperficie')
-                )
-            self.session.add(self.Forest)
-            self.session.flush()
+            # Pla
+            DadesDescripcioModelGestio = self.converts(dict(self.XMLDataRoot['DadesDescripcioModelGestio']))
+            InfoFinca = dict(self.XMLDataRoot['DadesGeneralsFinca']['DadesInfoFinca'])
+            if self.isDict(InfoFinca):
+                DadesInfoFinca = self.converts(InfoFinca)
+                superficie_total = \
+                    DadesInfoFinca.getFloat('FISuperficieArbrada', 0.0) + \
+                    DadesInfoFinca.getFloat('FISuperficieNOArbrada', 0.0)
+                self.Pla = dm.Pla(tipus_de_pla='PTGMF',
+                                  numero_expediente=self.projecteZip.numero_expediente,
+                                  any_del_pla=self.projecteZip.any_del_pla,
+                                  nom=plaData['NomPortadaPSGF'], municipi=plaData['MunicipiPortadaPSGF'],
+                                  comarca=plaData['ComarcaPortadaPSGF'],
+                                  vigencia=self.to_date_time(plaData['VigenciaPortadaPSGF']),
+                                  dens_camins_principals=DadesDescripcioModelGestio.getFloat('DensCaminsPR'),
+                                  dens_camins_primaris=DadesDescripcioModelGestio.getFloat('DensCaminsPM'),
+                                  dens_camins_secundaris=DadesDescripcioModelGestio.getFloat('DensCaminsSC'),
+                                  dens_camins_desembosc=DadesDescripcioModelGestio.getFloat('DensCaminsDB'),
+                                  dens_total_camins=DadesDescripcioModelGestio.getFloat('DensCaminsTOTAL'),
+                                  long_camins_principals=DadesDescripcioModelGestio.getFloat('LongCaminsPR'),
+                                  long_camins_primaris=DadesDescripcioModelGestio.getFloat('LongCaminsPM'),
+                                  long_camins_secundaris=DadesDescripcioModelGestio.getFloat('DensCaminsSC'),
+                                  long_camins_desembosc=DadesDescripcioModelGestio.getFloat('LongCaminsDB'),
+                                  long_total_camins=DadesDescripcioModelGestio.getFloat('LongCaminsTOTAL'),
+                                  info_complement_camins_existents=DadesDescripcioModelGestio.getValue('DescInfoComp1'),
+                                  info_complement_camins_nous=DadesDescripcioModelGestio.getValue('DescInfoComp2'),
+                                  info_complement_r_om_p__pastures=DadesDescripcioModelGestio.getValue('DescInfoComp3'),
+                                  info_complement_r_om_p__puntsaigua=DadesDescripcioModelGestio.getValue(
+                                      'DescInfoComp4'),
+                                  superficie_total=superficie_total,
+                                  superficie_ordenada=DadesInfoFinca.getFloat('FISuperficieOrdenada'),
+                                  superficie_no_ordenada=DadesInfoFinca.getFloat('FISuperficieNOOrdenada'),
+                                  superficie_forestal=DadesInfoFinca.getFloat('FISuperficieForestal'),
+                                  superficie_no_forestal=DadesInfoFinca.getFloat('FISuperficieNOForestal'),
+                                  superficie_arbrada=DadesInfoFinca.getFloat('FISuperficieArbrada'),
+                                  superficie_no_arbrada=DadesInfoFinca.getFloat('FISuperficieNOArbrada')
+                                  )
 
-        # Pla
-        DadesDescripcioModelGestio = self.converts(dict(self.XMLDataRoot['DadesDescripcioModelGestio']))
-        InfoFinca = dict(self.XMLDataRoot['DadesGeneralsFinca']['DadesInfoFinca'])
-        if self.isDict(InfoFinca):
-            DadesInfoFinca = self.converts(InfoFinca)
-            superficie_total = \
-                DadesInfoFinca.getFloat('FISuperficieArbrada', 0.0) + \
-                DadesInfoFinca.getFloat('FISuperficieNOArbrada', 0.0)
-            self.Pla = dm.Pla(tipus_de_pla='PTGMF',
-                              numero_expediente=self.projecteZip.numero_expediente,
-                              any_del_pla=self.projecteZip.any_del_pla,
-                              nom=plaData['NomPortadaPSGF'], municipi=plaData['MunicipiPortadaPSGF'],
-                              comarca=plaData['ComarcaPortadaPSGF'],
-                              vigencia=self.to_date_time(plaData['VigenciaPortadaPSGF']),
-                              dens_camins_principals=DadesDescripcioModelGestio.getFloat('DensCaminsPR'),
-                              dens_camins_primaris=DadesDescripcioModelGestio.getFloat('DensCaminsPM'),
-                              dens_camins_secundaris=DadesDescripcioModelGestio.getFloat('DensCaminsSC'),
-                              dens_camins_desembosc=DadesDescripcioModelGestio.getFloat('DensCaminsDB'),
-                              dens_total_camins=DadesDescripcioModelGestio.getFloat('DensCaminsTOTAL'),
-                              long_camins_principals=DadesDescripcioModelGestio.getFloat('LongCaminsPR'),
-                              long_camins_primaris=DadesDescripcioModelGestio.getFloat('LongCaminsPM'),
-                              long_camins_secundaris=DadesDescripcioModelGestio.getFloat('DensCaminsSC'),
-                              long_camins_desembosc=DadesDescripcioModelGestio.getFloat('LongCaminsDB'),
-                              long_total_camins=DadesDescripcioModelGestio.getFloat('LongCaminsTOTAL'),
-                              info_complement_camins_existents=DadesDescripcioModelGestio.getValue('DescInfoComp1'),
-                              info_complement_camins_nous=DadesDescripcioModelGestio.getValue('DescInfoComp2'),
-                              info_complement_r_om_p__pastures=DadesDescripcioModelGestio.getValue('DescInfoComp3'),
-                              info_complement_r_om_p__puntsaigua=DadesDescripcioModelGestio.getValue('DescInfoComp4'),
-                              superficie_total=superficie_total,
-                              superficie_ordenada=DadesInfoFinca.getFloat('FISuperficieOrdenada'),
-                              superficie_no_ordenada=DadesInfoFinca.getFloat('FISuperficieNOOrdenada'),
-                              superficie_forestal=DadesInfoFinca.getFloat('FISuperficieForestal'),
-                              superficie_no_forestal=DadesInfoFinca.getFloat('FISuperficieNOForestal'),
-                              superficie_arbrada=DadesInfoFinca.getFloat('FISuperficieArbrada'),
-                              superficie_no_arbrada=DadesInfoFinca.getFloat('FISuperficieNOArbrada')
-                              )
-
-            self.session.add(self.Pla)
-            self.session.flush()
-        if not self.Forest is None:
-            self.Forest.pla_id = self.Pla.id
-        self.session.commit()
+                self.session.add(self.Pla)
+                self.session.flush()
+            if not self.Forest is None:
+                self.Forest.pla_id = self.Pla.id
+            self.session.commit()
+        except Exception as e:
+            self.send2Log('importForestPla', e, True)
 
     def updatePlaWithRodalData(self):
+        self.send2Log('Updating Pla with Rodal data...')
         with supportEngine.connect() as conn:
             conn.execute(
                 f'''update pla set superficie_forestal = b.superficie_forestal,
-		       superficie_arbrada = b.superficie_arbrada, 
-		       superficie_ordenada = b.superficie_ordenada,
-		       superficie_no_arbrada = b.superficie_forestal - b.superficie_arbrada
+superficie_arbrada = b.superficie_arbrada, 
+superficie_ordenada = b.superficie_ordenada,
+superficie_no_arbrada = b.superficie_forestal - b.superficie_arbrada
 from 
 (select pla_id, sum(superficie_forestal) as superficie_forestal, 
 sum(superficie_arbrada) as superficie_arbrada,sum(superficie_ordenada) as superficie_ordenada
@@ -369,6 +414,7 @@ where pla.id = b.pla_id''')
 
     def importRodals(self):
         # Rodal
+        self.send2Log('Importing Rodals data...')
         objectiusPreferents = dict(self.XMLDataRoot['DadesDescripcioForest']['ResumObjectiusPreferents'])[
             'LlistaResumObjectiusPreferents']
         modelGestio = dict(dict(self.XMLDataRoot['DadesDescripcioModelGestio'])['ResumModelGestio'])[
@@ -413,35 +459,36 @@ where pla.id = b.pla_id''')
                 self.session.commit()
                 self.updatePlaWithRodalData()
                 try:
-                    if inventari != None:
+                    if inventari is not None:
                         FDRodalEMEspInfo = rodal['FDRodalEstructuraMassa']['InfoEstructuraRodal']['FDRodalEMEspInfo']
                         if type(FDRodalEMEspInfo) != list:
                             FDRodalEMEspInfo = [FDRodalEMEspInfo]
                         for rif in FDRodalEMEspInfo:
-                            resultats_inventari_fusta = self.converts(rif)
-                            ResultatsInventariFusta = dm.ResultatsInventariFusta(
-                                rodal_id=Rodal.id,
-                                especies_id=resultats_inventari_fusta.getValue('FormArbEspecieRodal'),
-                                n_peusperha=resultats_inventari_fusta.getValue('FormArbDensitatRodal'),
-                                fcc=resultats_inventari_fusta.getValue('FormArbFccRodal'),
-                                d_m=resultats_inventari_fusta.getValue('FormArbDmRodal'),
-                                h_m=resultats_inventari_fusta.getValue('FormArbHmRodal'),
-                                edat=resultats_inventari_fusta.getValue('FormArbEdatRodal'),
-                                a_b=resultats_inventari_fusta.getValue('FormArbABRodal'),
-                                vol=resultats_inventari_fusta.getValue('FormArbVolumRodal')
-                            )
-                            self.session.add(ResultatsInventariFusta)
+                            if rif is not None:
+                                resultats_inventari_fusta = self.converts(rif)
+                                ResultatsInventariFusta = dm.ResultatsInventariFusta(
+                                    rodal_id=Rodal.id,
+                                    especies_id=resultats_inventari_fusta.getValue('FormArbEspecieRodal'),
+                                    n_peusperha=resultats_inventari_fusta.getValue('FormArbDensitatRodal'),
+                                    fcc=resultats_inventari_fusta.getValue('FormArbFccRodal'),
+                                    d_m=resultats_inventari_fusta.getValue('FormArbDmRodal'),
+                                    h_m=resultats_inventari_fusta.getValue('FormArbHmRodal'),
+                                    edat=resultats_inventari_fusta.getValue('FormArbEdatRodal'),
+                                    a_b=resultats_inventari_fusta.getValue('FormArbABRodal'),
+                                    vol=resultats_inventari_fusta.getValue('FormArbVolumRodal')
+                                )
+                                self.session.add(ResultatsInventariFusta)
                         resum_inventari_fusta = self.converts(rodal['FDRodalEstructuraMassa']['InfoEstructuraRodal'])
                         ResumInventariFusta = dm.ResumInventariFusta(
-                                rodal_id=Rodal.id,
-                                tipus_inventari_id=self.getTipusInvetari(inventari.getValue('TipusInventariRodal')),
-                                forma_principal=inventari.getValue('FormaRodal'),
-                                n_peus_ha=resum_inventari_fusta.getFloat('FormArbSumDensitatRodal'),
-                                ab=resum_inventari_fusta.getFloat('FormArbSumABRodal'),
-                                vol=resum_inventari_fusta.getFloat('FormArbSumVolumRodal'),
-                                distribucioespaial=inventari.getValue('DistribucioRodal'),
-                                composicioespecifica=inventari.getValue('ComposicioRodal'),
-                                observacionsinventari=inventari.getValue('ObsDasPerAltres')
+                            rodal_id=Rodal.id,
+                            tipus_inventari_id=self.getTipusInvetari(inventari.getValue('TipusInventariRodal')),
+                            forma_principal=inventari.getValue('FormaRodal'),
+                            n_peus_ha=resum_inventari_fusta.getFloat('FormArbSumDensitatRodal'),
+                            ab=resum_inventari_fusta.getFloat('FormArbSumABRodal'),
+                            vol=resum_inventari_fusta.getFloat('FormArbSumVolumRodal'),
+                            distribucio_espacial=inventari.getValue('DistribucioRodal'),
+                            composicio_especifica=inventari.getValue('ComposicioRodal'),
+                            observacions_inventari=inventari.getValue('ObsDasPerAltres')
                         )
                         self.session.add(ResumInventariFusta)
 
@@ -449,86 +496,99 @@ where pla.id = b.pla_id''')
                         FDRodalTipusDasometricInfos = TipusDasometric.getValue('FDRodalTipusDasometricInfo')
                         if not (type(FDRodalTipusDasometricInfos) == list):
                             FDRodalTipusDasometricInfos = [FDRodalTipusDasometricInfos]
-                        i = 1
-                        for FDRodalTipusDasometricInfo in FDRodalTipusDasometricInfos:
-                            while f'FDRTDTitol{i}' in TipusDasometric.row.keys():
-                                InventariCd = dm.InventariCd(
-                                    rodal_id=Rodal.id,
-                                    c_d=TipusDasometric.getInt(f'FDRTDTitol{i}'),
-                                    especies_id=self.toInt(FDRodalTipusDasometricInfo, 'FDRTDEspecieId'),
-                                    npeus=self.toInt(FDRodalTipusDasometricInfo, f'FDRTPCol{i}'),
-                                    a_b=TipusDasometric.getFloat(f'FDRTDAB{i}')
-                                )
-                                self.session.add(InventariCd)
-                                i += 1
+
+                        if FDRodalTipusDasometricInfos is not None:
+                            i = 1
+                            for FDRodalTipusDasometricInfo in FDRodalTipusDasometricInfos:
+                                if FDRodalTipusDasometricInfo is not None:
+                                    while f'FDRTDTitol{i}' in TipusDasometric.row.keys():
+                                        InventariCd = dm.InventariCd(
+                                            rodal_id=Rodal.id,
+                                            c_d=TipusDasometric.getInt(f'FDRTDTitol{i}'),
+                                            especies_id=self.toInt(FDRodalTipusDasometricInfo, 'FDRTDEspecieId'),
+                                            npeus=self.toInt(FDRodalTipusDasometricInfo, f'FDRTPCol{i}'),
+                                            a_b=TipusDasometric.getFloat(f'FDRTDAB{i}')
+                                        )
+                                        self.session.add(InventariCd)
+                                        i += 1
                 except Exception as e:
-                    print(e)
+                    self.send2Log('importRodals', e, True)
         except Exception as e:
-            print(e)
+            self.send2Log('importRodals', e, True)
         self.session.flush()
         self.session.commit()
 
     def importXarxas(self):
-        #  XarxaNovaConstruccio
-        InfraestructuraNOUEPs = \
-            dict(dict(self.XMLDataRoot['DadesDescripcioModelGestio']['DadesInfraestructuresCaminsNOU'])[
-                     'LlistaInfraestructuresNOUEP'])[
-                'InfraestructuraNOUEP']
-        for InfraestructuraNOUEP in InfraestructuraNOUEPs:
-            if self.isDict(InfraestructuraNOUEP):
-                vc = self.converts(InfraestructuraNOUEP)
-                XarxaNovaConstruccio = dm.XarxaNovaConstruccio(
-                    pla_id=self.Pla.id,
-                    codi=vc.getValue('IdInfra'),
-                    tipus=vc.getValue('TipusInfra'),
-                    longidud=vc.getValue('AmidamentInfra'),
-                    any_o_periodicitat=vc.getValue('AnyInfra'),
-                    actuacio_id=self.get_actuacio_id(vc.getValue('TipusInfra'), table='XarxaNovaConstruccio'))
-                self.session.add(XarxaNovaConstruccio)
-        self.session.flush()
+        self.send2Log('Importing Xarxas data...')
+        try:
+            #  XarxaNovaConstruccio
+            InfraestructuraNOUEPs = \
+                dict(dict(self.XMLDataRoot['DadesDescripcioModelGestio']['DadesInfraestructuresCaminsNOU'])[
+                         'LlistaInfraestructuresNOUEP'])[
+                    'InfraestructuraNOUEP']
+            for InfraestructuraNOUEP in InfraestructuraNOUEPs:
+                if self.isDict(InfraestructuraNOUEP):
+                    vc = self.converts(InfraestructuraNOUEP)
+                    XarxaNovaConstruccio = dm.XarxaNovaConstruccio(
+                        pla_id=self.Pla.id,
+                        codi=vc.getValue('IdInfra'),
+                        tipus=vc.getValue('TipusInfra'),
+                        longidud=vc.getValue('AmidamentInfra'),
+                        any_o_periodicitat=vc.getValue('AnyInfra'),
+                        actuacio_id=self.get_actuacio_id(vc.getValue('TipusInfra'), table='XarxaNovaConstruccio'))
+                    self.session.add(XarxaNovaConstruccio)
+            self.session.flush()
 
-        #  XarxaViariaExistent
-        InfraestructuraEXEPs = \
-            dict(dict(self.XMLDataRoot['DadesDescripcioModelGestio']['DadesInfraestructuresCaminsEX'])[
-                     'LlistaInfraestructuresEXEP'])[
-                'InfraestructuraEXEP']
-        for InfraestructuraEXEP in InfraestructuraEXEPs:
-            if self.isDict(InfraestructuraEXEP):
-                vc = self.converts(InfraestructuraEXEP)
-                XarxaViariaExistent = dm.XarxaViariaExistent(pla_id=self.Pla.id,
-                                                             codi=vc.getValue('IdInfra'),
-                                                             tipus=vc.getValue('TipusInfra'),
-                                                             longidud=vc.getValue('AmidamentInfra'),
-                                                             any_o_periodicitat=vc.getValue('AnyInfra'),
-                                                             actuacio_id=self.get_actuacio_id(vc.getValue('TipusInfra'),
-                                                                                              table='XarxaViariaExistent'))
-                self.session.add(XarxaViariaExistent)
-        self.session.flush()
+            #  XarxaViariaExistent
+            InfraestructuraEXEPs = \
+                dict(dict(self.XMLDataRoot['DadesDescripcioModelGestio']['DadesInfraestructuresCaminsEX'])[
+                         'LlistaInfraestructuresEXEP'])[
+                    'InfraestructuraEXEP']
+            for InfraestructuraEXEP in InfraestructuraEXEPs:
+                if self.isDict(InfraestructuraEXEP):
+                    vc = self.converts(InfraestructuraEXEP)
+                    XarxaViariaExistent = dm.XarxaViariaExistent(pla_id=self.Pla.id,
+                                                                 codi=vc.getValue('IdInfra'),
+                                                                 tipus=vc.getValue('TipusInfra'),
+                                                                 longidud=vc.getValue('AmidamentInfra'),
+                                                                 any_o_periodicitat=vc.getValue('AnyInfra'),
+                                                                 actuacio_id=self.get_actuacio_id(
+                                                                     vc.getValue('TipusInfra'),
+                                                                     table='XarxaViariaExistent'))
+                    self.session.add(XarxaViariaExistent)
+            self.session.flush()
+        except Exception as e:
+            self.send2Log('importXarxas', e, True)
 
     def imporLineasDefensaPuntsAigua(self):
-        InfraestructuraEPDEPUs = \
-            dict(dict(self.XMLDataRoot['DadesDescripcioModelGestio']['DadesInfraestructuresDEPU'])[
-                     'LlistaInfraestructuresDEPU'])[
-                'InfraestructuraEPDEPU']
-        for InfraestructuraEPDEPU in InfraestructuraEPDEPUs:
-            if self.isDict(InfraestructuraEPDEPU):
-                vc = self.converts(InfraestructuraEPDEPU)
-                codi = vc.getValue('IdInfra')
-                LineasDefensaPuntsAigua = dm.LineasDefensaPuntsAigua(
-                    pla_id=self.Pla.id,
-                    codi=codi,
-                    llistat_actuacions_id=self.get_actuacio_id(
-                        vc.getValue('TipusInfra'), vc.getValue('TipusEP'), 'LineasDefensaPuntsAigua'),
-                    amidament=vc.getFloat('AmidamentInfra'),
-                    any_o_periodicitat=vc.getValue('AnyInfra'),
-                    tipus_est_prev=vc.getValue('TipusEP'),
-                    tipus=vc.getValue('TipusInfra'),
-                    observacions=vc.getValue('ObservacionsInfra')
-                )
-                self.session.add(LineasDefensaPuntsAigua)
-        self.session.flush()
+        self.send2Log('Importing Lineas Defensa Punts Aigua...')
+        try:
+            InfraestructuraEPDEPUs = \
+                dict(dict(self.XMLDataRoot['DadesDescripcioModelGestio']['DadesInfraestructuresDEPU'])[
+                         'LlistaInfraestructuresDEPU'])[
+                    'InfraestructuraEPDEPU']
+            for InfraestructuraEPDEPU in InfraestructuraEPDEPUs:
+                if self.isDict(InfraestructuraEPDEPU):
+                    vc = self.converts(InfraestructuraEPDEPU)
+                    codi = vc.getValue('IdInfra')
+                    LineasDefensaPuntsAigua = dm.LineasDefensaPuntsAigua(
+                        pla_id=self.Pla.id,
+                        codi=codi,
+                        llistat_actuacions_id=self.get_actuacio_id(
+                            vc.getValue('TipusInfra'), vc.getValue('TipusEP'), 'LineasDefensaPuntsAigua'),
+                        amidament=vc.getFloat('AmidamentInfra'),
+                        any_o_periodicitat=vc.getValue('AnyInfra'),
+                        tipus_est_prev=vc.getValue('TipusEP'),
+                        tipus=vc.getValue('TipusInfra'),
+                        observacions=vc.getValue('ObservacionsInfra')
+                    )
+                    self.session.add(LineasDefensaPuntsAigua)
+            self.session.flush()
+        except Exception as e:
+            self.send2Log('imporLineasDefensaPuntsAigua', e, True)
 
     def importCanviUs(self):
+        self.send2Log('Importing Canvi Us...')
         InfraestructuraEPROPAs = \
             dict(dict(self.XMLDataRoot['DadesDescripcioModelGestio']['DadesInfraestructuresROPA'])[
                      'LlistaInfraestructuresROPA'])[
@@ -549,88 +609,103 @@ where pla.id = b.pla_id''')
                                          )
                     self.session.add(CanviUs)
             self.session.flush()
-        except:
-            pass
+        except Exception as e:
+            self.send2Log('imporLineasDefensaPuntsAigua', e, True)
 
     def importPropietariDade(self):
-        DadesPropietari = \
-            dict(dict(self.XMLDataRoot['DadesGeneralsFinca']['LlistaPropietaris']))['DadesPropietari']
-        if type(DadesPropietari) != list:
-            DadesPropietari = [DadesPropietari]
-        for proprietari in DadesPropietari:
-            if self.isDict(proprietari):
-                vc = self.converts(proprietari)
-                PropietariDade = dm.PropietariDade(
-                    pla_id=self.Pla.id,
-                    tipus=vc.getValue('TipusPropietari'),
-                    d_ni=vc.getValue('DNIPropietari'),
-                    nom=vc.getValue('NomPropietari'),
-                    primer_cognom=vc.getValue('Cognom1Propietari'),
-                    segon_cognom=vc.getValue('Cognom2Propietari'),
-                    adreca=vc.getValue('adreca'),
-                    municipi=vc.getValue('MunicipiPropietari'),
-                    cp=vc.getValue('CPPropietari'),
-                    telef_1=vc.getValue('Tfn1Propietari'),
-                    telef_2=vc.getValue('Tfn2Propietari'),
-                    email=vc.getValue('EmailPropietari')
-                )
-                self.session.add(PropietariDade)
-        self.session.flush()
+        self.send2Log('Importing Propietari Dade...')
+        try:
+            DadesPropietari = \
+                dict(dict(self.XMLDataRoot['DadesGeneralsFinca']['LlistaPropietaris']))['DadesPropietari']
+            if type(DadesPropietari) != list:
+                DadesPropietari = [DadesPropietari]
+            for proprietari in DadesPropietari:
+                if self.isDict(proprietari):
+                    vc = self.converts(proprietari)
+                    PropietariDade = dm.PropietariDade(
+                        pla_id=self.Pla.id,
+                        tipus=vc.getValue('TipusPropietari'),
+                        d_ni=vc.getValue('DNIPropietari'),
+                        nom=vc.getValue('NomPropietari'),
+                        primer_cognom=vc.getValue('Cognom1Propietari'),
+                        segon_cognom=vc.getValue('Cognom2Propietari'),
+                        adreca=vc.getValue('adreca'),
+                        municipi=vc.getValue('MunicipiPropietari'),
+                        cp=vc.getValue('CPPropietari'),
+                        telef_1=vc.getValue('Tfn1Propietari'),
+                        telef_2=vc.getValue('Tfn2Propietari'),
+                        email=vc.getValue('EmailPropietari')
+                    )
+                    self.session.add(PropietariDade)
+            self.session.flush()
+        except Exception as e:
+            self.send2Log('importPropietariDade', e, True)
 
     def importInfoComplementariaPla(self):
-        InfoComplementariaPla = \
-            dict(self.XMLDataRoot['DadesDescripcioForest'])
-        if self.isDict(InfoComplementariaPla):
-            vc = self.converts(InfoComplementariaPla)
-            InfoComplementariaPla = dm.InfoComplementariaPla(
-                pla_id=self.Pla.id,
-                activitat_cinegetica=vc.getValue('DescCinegetica'),
-                tipus_de_bestiar=vc.getValue('TipusBestiar'),
-                numero_de_caps=vc.getFloat('NumCapsBestiar'),
-                observacions_ramaderia=vc.getValue('DescExtensiva'),
-                info_complementaria_pla=vc.getValue('DescComplementaria'),
-                antecedents_gestio=vc.getValue('AntecedentsGestio')
-            )
-            self.session.add(InfoComplementariaPla)
-        self.session.flush()
+        self.send2Log('Importing Info Complementaria Pla...')
+        try:
+            InfoComplementariaPla = \
+                dict(self.XMLDataRoot['DadesDescripcioForest'])
+            if self.isDict(InfoComplementariaPla):
+                vc = self.converts(InfoComplementariaPla)
+                InfoComplementariaPla = dm.InfoComplementariaPla(
+                    pla_id=self.Pla.id,
+                    activitat_cinegetica=vc.getValue('DescCinegetica'),
+                    tipus_de_bestiar=vc.getValue('TipusBestiar'),
+                    numero_de_caps=vc.getFloat('NumCapsBestiar'),
+                    observacions_ramaderia=vc.getValue('DescExtensiva'),
+                    info_complementaria_pla=vc.getValue('DescComplementaria'),
+                    antecedents_gestio=vc.getValue('AntecedentsGestio')
+                )
+                self.session.add(InfoComplementariaPla)
+            self.session.flush()
+        except Exception as e:
+            self.send2Log('importInfoComplementariaPla', e, True)
 
     def importPersonaDeContacte(self):
-        PersonaDeContacteData = \
-            dict(self.XMLDataRoot['DadesGeneralsFinca']['PersonaContacte'])
-        if self.isDict(PersonaDeContacteData):
-            vc = self.converts(PersonaDeContacteData)
-            dniProprietari = vc.getValue('DNIPropietari')
-            PersonaDeContacte = self.session.query(dm.PersonaDeContacte).filter(
-                dm.PersonaDeContacte.dni == dniProprietari).first()
-            if PersonaDeContacte is None:
-                PersonaDeContacte = dm.PersonaDeContacte(
-                    dni=vc.getValue('DNIPropietari'),
-                    nom=vc.getValue('NomPropietari'),
-                    primer_cognom=vc.getValue('Cognom1Propietari'),
-                    segon_cognom=vc.getValue('Cognom2Propietari'),
-                    adreca=vc.getValue('AdrecaPropietari'),
-                    municipi=vc.getValue('NomPropietari'),
-                    cp=vc.getValue('CPPropietari'),
-                    email=vc.getValue('EmailPropietari'),
-                    telef1=vc.getValue('Tfn1Propietari'),
-                    telef2=vc.getValue('Tfn2Propietari')
+        self.send2Log('Importing Persona De Contacte...')
+        try:
+            PersonaDeContacteData = \
+                dict(self.XMLDataRoot['DadesGeneralsFinca']['PersonaContacte'])
+            if self.isDict(PersonaDeContacteData):
+                vc = self.converts(PersonaDeContacteData)
+                dniProprietari = vc.getValue('DNIPropietari')
+                PersonaDeContacte = self.session.query(dm.PersonaDeContacte).filter(
+                    dm.PersonaDeContacte.dni == dniProprietari).first()
+                if PersonaDeContacte is None:
+                    PersonaDeContacte = dm.PersonaDeContacte(
+                        dni=vc.getValue('DNIPropietari'),
+                        nom=vc.getValue('NomPropietari'),
+                        primer_cognom=vc.getValue('Cognom1Propietari'),
+                        segon_cognom=vc.getValue('Cognom2Propietari'),
+                        adreca=vc.getValue('AdrecaPropietari'),
+                        municipi=vc.getValue('NomPropietari'),
+                        cp=vc.getValue('CPPropietari'),
+                        email=vc.getValue('EmailPropietari'),
+                        telef1=vc.getValue('Tfn1Propietari'),
+                        telef2=vc.getValue('Tfn2Propietari')
+                    )
+                    self.session.add(PersonaDeContacte)
+                self.session.commit()
+            PlaPersContact = self.session.query(dm.PlaPersContact).filter(
+                and_(dm.PlaPersContact.pla_id == self.Pla.id,
+                     dm.PlaPersContact.persona_de_contacte_id == PersonaDeContacte.id)).first()
+            if PlaPersContact is None:
+                PlaPersContact = dm.PlaPersContact(
+                    pla_id=self.Pla.id,
+                    persona_de_contacte_id=PersonaDeContacte.id
                 )
-                self.session.add(PersonaDeContacte)
-            self.session.commit()
-        PlaPersContact = self.session.query(dm.PlaPersContact).filter(
-            and_(dm.PlaPersContact.pla_id == self.Pla.id,
-                 dm.PlaPersContact.persona_de_contacte_id == PersonaDeContacte.id)).first()
-        if PlaPersContact is None:
-            PlaPersContact = dm.PlaPersContact(
-                pla_id=self.Pla.id,
-                persona_de_contacte_id=PersonaDeContacte.id
-            )
-            self.session.add(PlaPersContact)
+                self.session.add(PlaPersContact)
+        except Exception as e:
+            self.send2Log('importPersonaDeContacte', e, True)
 
     def importActuacionsDelPla(self):
-        DadesDescripcioProgramesActs = dict(self.XMLDataRoot['DadesDescripcioProgramesAct']['ResumProgramesActProg'])[
-            'LlistaResumProgramesAct']
-        for DadesDescripcioProgramesAct in DadesDescripcioProgramesActs:
+        self.send2Log('Importing Actuacions Del Pla...')
+        try:
+            DadesDescripcioProgramesActs = \
+                dict(self.XMLDataRoot['DadesDescripcioProgramesAct']['ResumProgramesActProg'])[
+                    'LlistaResumProgramesAct']
+            for DadesDescripcioProgramesAct in DadesDescripcioProgramesActs:
                 if self.isDict(DadesDescripcioProgramesAct):
                     vc = self.converts(DadesDescripcioProgramesAct)
                     rodal = self.session.query(dm.Rodal).filter(
@@ -654,9 +729,12 @@ where pla.id = b.pla_id''')
                     self.session.add(ActuacionsDelPla)
                     self.session.flush()
                     self.insertAnyActuacio(ActuacionsDelPla.id, ActuacionsDelPla.any_o_periodicitat)
-        self.session.commit()
+            self.session.commit()
+        except Exception as e:
+            self.send2Log('importActuacionsDelPla', e, True)
 
     def mergeGeometry2Data(self):
+        self.send2Log('Merge geometry with table data...')
         with supportEngine.connect() as conn:
             for shp_name in self.file_contents.keys():
                 if shp_name != 'informacio_addicional':
@@ -684,6 +762,7 @@ where pla.id = b.pla_id''')
         self.session.commit()
 
     def PDF2XMLWine(self):
+        self.send2Log('Converting PDF to XML...')
         pdffilename = self.projecteZip.pdf_fname
         shell_command = "{0}{1}{2}exe{2}PDF2XML{2}PDF2XML.exe {3} {4}".format(
             'wine ' if os.name == 'posix' else '',
@@ -692,11 +771,15 @@ where pla.id = b.pla_id''')
         subprocess.call(shell_command.split())
 
     def PDF2XMLJava(self):
-        pdffilename = self.projecteZip.pdf_fname
-        # ~/Atrium/CTFC/psgf/pdf2xml$ java -cp "./:./repository/*" Pdf2Xml ../pla_files/Solsones/Solsones.pdf Artemis_76
-        pdf2xmlpath = f"{app_object.app.root_path}{os.sep}pdf2xml"
-        shell_command = f'java -cp ./:./repository/* Pdf2Xml  {pdffilename} {pdfPassword}'
-        subprocess.call(shell_command.split(), cwd=pdf2xmlpath)
+        self.send2Log('Converting PDF to XML...')
+        try:
+            pdffilename = self.projecteZip.pdf_fname
+            # ~/Atrium/CTFC/psgf/pdf2xml$ java -cp "./:./repository/*" Pdf2Xml ../pla_files/Solsones/Solsones.pdf Artemis_76
+            pdf2xmlpath = f"{app_object.app.root_path}{os.sep}pdf2xml"
+            shell_command = f'java -cp ./:./repository/* Pdf2Xml  {pdffilename} {pdfPassword}'
+            subprocess.call(shell_command.split(), cwd=pdf2xmlpath)
+        except Exception as e:
+            self.send2Log('PDF2XMLJava', e, True)
 
     def removeImportedFiles(self):
         subprocess.call(["rm", "-rf", self.pla_files_path])
@@ -707,4 +790,3 @@ where pla.id = b.pla_id''')
         self.importXML()
         self.importShp()
         self.mergeGeometry2Data()
-

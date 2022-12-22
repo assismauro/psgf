@@ -27,10 +27,11 @@
             let startyear = document.getElementById('startyear').value;
             let endyear = document.getElementById('endyear').value;
             let actuacions = document.getElementById('actuacions').value;
+            let opacity = document.getElementById('opacities').value;
             let pla_id = Pla.options[Pla.selectedIndex].value;
             let baselayer = Baselayer.options[Baselayer.selectedIndex].value;
             let url = `/callback/showActuacion?&pla_id=${pla_id}&baselayer=${baselayer}` +
-                `&startyear=${startyear}&endyear=${endyear}&actuacions=${actuacions}&download=${download}`;
+                `&startyear=${startyear}&endyear=${endyear}&actuacions=${actuacions}&opacity=${opacity}&download=${download}`;
             if (download) {
                 doDownload(url)
                 return
@@ -55,6 +56,12 @@
 
 {% extends 'admin/master.html' %}
 {% block body %}
+    <style>
+    .mapboxgl-popup {
+        max-width: 400px;
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+    }
+    </style>
     <div class="container">
         <div class="row">
              <div class="col">
@@ -100,6 +107,16 @@
                         onchange="callback(false)">
                     <option value="orto" selected="selected">Ortophoto</option>
                     <option value="topo">Topographic</option>
+                </select>
+            </div>
+            <div class="col">
+                <label for=opacities-select">Opacitat:</label>
+                <select id="opacities" name="opacities-select" class="form-select" aria-label="Select"
+                        onchange="callback(false)">
+                    {% for key, value in opacities.items() %}
+                        <option value={{ key }} {{ 'selected' if key == 5 }}>
+                            {{ value }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="col">

@@ -11,8 +11,9 @@
             let Baselayer = document.getElementById('baselayer')
             let pla_id = Pla.options[Pla.selectedIndex].value;
             let classe = Classe.options[Classe.selectedIndex].value;
-            let baselayer = Baselayer.options[Baselayer.selectedIndex].value
-            let response = await fetch(`/callback/getMap?&pla_id=${pla_id}&class=${classe}&baselayer=${baselayer}`);
+            let baselayer = Baselayer.options[Baselayer.selectedIndex].value;
+            let opacity = document.getElementById('opacities').value;
+            let response = await fetch(`/callback/getMap?&pla_id=${pla_id}&class=${classe}&baselayer=${baselayer}&opacity=${opacity}`);
             if (response.ok) {
                 let mapJson = await response.json();
                 if (response.ok) {
@@ -57,6 +58,17 @@
                     <option value="topo">Topographic</option>
                 </select>
             </div>
+            <div class="col">
+                <label for=opacities-select">Opacitat:</label>
+                <select id="opacities" name="opacities-select" class="form-select" aria-label="Select"
+                        onchange="callback(false)">
+                    {% for key, value in opacities.items() %}
+                        <option value={{ key }} {{ 'selected' if key == 8 }}>
+                            {{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <div class="row-9">
                 <div id="map" class="chart" style="height: 800px"></div>
             </div>

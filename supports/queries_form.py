@@ -22,7 +22,7 @@ class queryView(BaseView):
         return self.render(template='admin/query.html', filter=filter)
 
     def is_accessible(self):
-        return dbquery.isAcessible(current_user, True)
+        return dbquery.isAdministrator(current_user)
 
 def getQueryData(sql, filter, label):
     sql = sql.format(filter=filter)

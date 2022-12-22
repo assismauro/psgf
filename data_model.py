@@ -26,13 +26,14 @@ class Profile(db.Model):
     profilename = Column(String(255), nullable=False, unique=True)
     is_administrator = Column(Boolean, nullable=False)
     can_upload = Column(Boolean, nullable=False)
+    can_edit_project_data = Column(Boolean, nullable=False)
 
     def __repr__(self):
         return self.profilename
 
 
 def getUploadProfileId():
-    return session.query(Profile.id).filter(and_(not_(Profile.is_administrator), Profile.can_upload)).first()[0]
+    return session.query(Profile.id).filter(and_(not_(Profile.is_administrator), (not_(Profile.can_edit_project_data)))).first()[0]
 
 
 class User(db.Model, UserMixin):
@@ -276,6 +277,7 @@ class Rodal(db.Model):
     area = Column(Float)
     forestal = Column(Integer)
     especie = Column(String(255))
+    especies_id = Column(ForeignKey('especies.id'))
     arbrada = Column(Integer)
     estat_sanitari = Column(String(255))
     pla_id = Column(Integer, ForeignKey('pla.id', ondelete='CASCADE'))
@@ -300,6 +302,7 @@ class Rodal(db.Model):
     forest = relationship('Forest')
     qualitat_estacio = relationship('QualitatEstacio')
     vulnerabilitat = relationship('Vulnerabilitat')
+    especies = relationship('Especies')
 
     def __repr__(self):
         return f"{self.pla}/{self.num_rodal}"
@@ -557,6 +560,7 @@ class XarxaNovaConstruccio(db.Model):
     realitzada = Column(Boolean)
     ajut_concedit = Column(Boolean)
     quantitat_ajut = Column(Integer)
+    rgb_color = Column(String(7))
     geometry = Column(Geometry("MULTILINESTRING", srid=4326))
 
     pla = relationship('Pla')
@@ -574,6 +578,7 @@ class XarxaViariaExistent(db.Model):
     longidud = Column(Float)
     any_o_periodicitat = Column(Integer)
     any_real_actuacio = Column(Integer)
+    rgb_color = Column(String(7))
     geometry = Column(Geometry("MULTILINESTRING", srid=4326))
 
     pla = relationship('Pla')
@@ -651,6 +656,7 @@ class Especies(db.Model):
 
     id = Column(Integer, primary_key=True)
     nom = Column(String(255))
+    rgb_color = Column(String(7))
     acronym = Column(String(255))
 
     def __repr__(self):
@@ -777,17 +783,22 @@ class CanviUs(db.Model):
     ajut_concedit = Column(Boolean)
     quantitat_ajut = Column(Float)
     observacions = Column(Text)
+    rgb_color = Column(String(7))
     geometry = Column(Geometry("MULTIPOLYGON", srid=4326))
 
     pla = relationship('Pla')
     actuacio = relationship('LlistatActuacion')
 
 
-class LogErr(db.Model):
+class LogImport(db.Model):
+    __tablename__ = 'log_import'
+
     id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime, nullable=False, default=datetime.now())
-    nom_pla = Column(String(255))
-    message = Column(Text)
+    event_timestamp = Column(DateTime, nullable=False, default=datetime.now())
+    pla_pdf = Column(String(1000), nullable=False)
+    nom_pla = Column(String(1000), nullable=False)
+    process = Column(String(1000), nullable=False)
+    message = Column(Text, nullable=False)
 
 
 class ImportShpLines(db.Model):

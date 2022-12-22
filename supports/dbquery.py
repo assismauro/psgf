@@ -3,6 +3,7 @@ import pandas as pd
 import supports.app_object as app_object_support
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
+from sqlalchemy import text
 
 def getEngine():
     return create_engine(app_object_support.app.config['SQLALCHEMY_DATABASE_URI'])
@@ -21,7 +22,7 @@ def connectDB():
 def executeSQL(sql):
     conn = connectDB()
     try:
-        return conn.execute(sql)
+        return conn.execute(text(sql))
     except Exception as e:
         raise e
 
@@ -50,7 +51,32 @@ def tableExists(tablename, schema='public'):
    AND    table_name   = '{tablename}'
    ) a''') == 1
 
-def isAcessible(current_user, only_admin=False):
+def isAdministrator(current_user):
+    try:
+        if (current_user is None) or (not current_user.is_active()):
+            return False
+        else:
+            if current_user.profile is None:
+                return False
+            else:
+                return current_user.profile.is_administrator
+    except:
+        return False
+
+def canEditProjectData(current_user):
+    try:
+        if (current_user is None) or (not current_user.is_active()):
+            return False
+        else:
+            if current_user.profile is None:
+                return False
+            else:
+                return current_user.profile.can_edit_project_data
+    except:
+        return False
+
+
+def isUpload(current_user):
     try:
         if (current_user is None) or (not current_user.is_active()):
             return False

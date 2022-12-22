@@ -41,7 +41,8 @@ def callbacks(endpoint):
     if endpoint == 'getMap':
         return json.dumps({'Map': maps_support.getFigAreas(args.get('pla_id'),
                                                            args.get('class'),
-                                                           args.get('baselayer'))})
+                                                           args.get('baselayer'),
+                                                           args.get('opacity'))})
     elif endpoint == 'getQueryResult':
         return json.dumps({'Map': queries.getFigQuery(args.get('filter_value'))})
     elif endpoint == 'showActuacion':
@@ -59,7 +60,8 @@ def callbacks(endpoint):
                                             args.get('baselayer'),
                                             args.get('startyear'),
                                             args.get('endyear'),
-                                            args.get('actuacions'))
+                                            args.get('actuacions'),
+                                            args.get('opacity'))
             return json.dumps({'Map': _map,
                                #'Table': actuationsDF,
                                'TableJSON': actuationsJSON})

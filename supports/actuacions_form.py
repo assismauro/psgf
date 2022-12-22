@@ -1,5 +1,9 @@
 # https://towardsdatascience.com/how-to-create-outstanding-custom-choropleth-maps-with-plotly-and-dash-49ac918a5f05
 # https://plotly.com/python/table/
+# About hover labels:
+# https://plotly.com/python/hover-text-and-formatting/
+# https://plotly.com/python/reference/?_ga=2.135691057.1478852968.1662893046-231659727.1654351901#scatter-hovertemplate
+import os
 import plotly
 import plotly.express as px
 import json
@@ -31,10 +35,10 @@ def breakString(mystring):
 class actuacionsView(BaseView):
     @expose('/')
     def index(self):
-        return self.render('admin/actuacions.html', plas=getPlas(), years=getYears())
+        return self.render('admin/actuacions.html', plas=getPlas(), years=getYears(), opacities=getOpacities())
 
     def is_accessible(self):
-        return dbquery.isAcessible(current_user, True)
+        return dbquery.isAdministrator(current_user)
 
 
 def getPlas():
@@ -47,6 +51,11 @@ def getPlas():
 def getYears():
     return dbquery.getDictResultset("select distinct any_programat, any_programat "
                                     "from any_actuacio order by any_programat")
+
+
+def getOpacities():
+    return dbquery.getDictResultset("SELECT generate_series(1,10) as id, concat(cast(generate_series(1,10) * 10 "
+                                    "as varchar), '%') as value")
 
 
 def getAreas(pla_id, startyear, endyear):
@@ -142,37 +151,50 @@ def getTable(pla_id, startyear, endyear, actuacions):
     return df, fig
 
 
-def getFigAreas(pla_id, baselayer, startyear, endyear, actuacions):
+def getFigAreas(pla_id, baselayer, startyear, endyear, actuacions, opacity):
     area, geo, centroid, zoom = getAreas(pla_id, startyear, endyear)
 
     fig = px.choropleth_mapbox(area, geojson=geo, color=area.id,
                                locations=area.id, featureidkey="properties.id",
                                center=centroid,
                                hover_name=area.num_rodal, hover_data={'id': False},
-                               mapbox_style="carto-positron", zoom=zoom)
-    fig.update_layout(
-        mapbox_style="white-bg",
-        mapbox_layers=[
-            {
-                "below": 'traces',
-                "sourcetype": "raster",
-                "sourceattribution": "Institut Cartogràfic i Geològic de Catalunya",
-                "source": [
+                               mapbox_style="carto-positron", zoom=zoom,
+                               opacity=float(opacity)/10)
+    if baselayer != 'orto':
+        fig.update_layout(
+            mapbox_style="open-street-map",
+            mapbox_layers=[
+                {
+                    "below": 'traces',
+                    "sourcetype": "raster"
+                }
+            ])
+    else:
+        fig.update_layout(
+            mapbox_style="white-bg",
+            mapbox_layers=[
+                {
                     # https://www.icgc.cat/en/Innovation/Resources-for-developers/Services-for-APIs-and-Widgets
-                    f"https://geoserveis.icgc.cat/icc_mapesmultibase/noutm/wmts/{baselayer}/GRID3857/{{z}}/{{x}}/{{y}}.jpeg"
-                ]
-            }
-        ])
+                    "below": 'traces',
+                    "sourcetype": "raster",
+                    "sourceattribution": "Institut Cartogràfic i Geològic de Catalunya",
+                    "source": [
+                         f"https://geoserveis.icgc.cat/icc_mapesmultibase/noutm/wmts/{baselayer}/GRID3857/{{z}}/{{x}}/{{y}}.jpeg"
+                    ]
+                }
+            ])
     fig.update_layout(coloraxis_showscale=False)
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     actuationsDf, actuationsJSON = getTable(pla_id, startyear, endyear, actuacions)
     tableJSON = json.dumps(actuationsJSON, cls=plotly.utils.PlotlyJSONEncoder)
-    return graphJSON,tableJSON
+    return graphJSON, tableJSON
 
 def createDownloadFile(pla_id, startyear, endyear, actuacions):
     df = getTableData(pla_id, startyear, endyear, actuacions)
     df.columns = ['Pla', 'Rodal', 'Actuació', 'Area', 'Any o Periodicitat', 'Any programat']
     fname = f"pgf_{datetime.now().strftime('%m_%d_%Y_%H%M%S')}.xlsx"
+    if not os.path.exists('downloads'):
+        os.makedirs('downloads')
     df.to_excel(f"downloads/{fname}", index=False)
     return fname
 

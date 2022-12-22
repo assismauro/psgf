@@ -3,7 +3,7 @@ from flask_admin.contrib.geoa import ModelView
 from flask_user import current_user
 from markupsafe import Markup
 from werkzeug.datastructures import FileStorage
-from wtforms import ValidationError, fields
+from wtforms import ValidationError, fields, StringField, PasswordField
 from wtforms.validators import required
 from wtforms.widgets import FileInput
 from flask_babel import lazy_gettext
@@ -16,14 +16,19 @@ import supports.actuacions_form as actuacions_form
 
 
 # region Models definition
-class psgfAdmView(ModelView):
-    can_create = True
-    can_delete = True
-    can_edit = True
-    can_export = True
+class psgfPlaDataView(ModelView):
 
     def is_accessible(self):
-        return dbquery.isAcessible(current_user, True)
+        self.can_create = dbquery.canEditProjectData(current_user)
+        self.can_delete = dbquery.canEditProjectData(current_user)
+        self.can_edit = dbquery.canEditProjectData(current_user)
+        self.can_export = True
+        return current_user is not None and current_user.is_authenticated # should be logged, at least
+
+class psgfAdmView(ModelView):
+
+    def is_accessible(self):
+        return dbquery.isAdministrator(current_user)
 
 
 class userView(psgfAdmView):
@@ -33,6 +38,7 @@ class userView(psgfAdmView):
                          email=lazy_gettext('email'),
                          confirmed_at=lazy_gettext('confirmed_at'),
                          profile=lazy_gettext('profile'), )
+    password=PasswordField('Password', validators=[required()])
     create_modal = True
 
 
@@ -42,7 +48,7 @@ class profileView(psgfAdmView):
                          can_upload=lazy_gettext('can_upload'))
 
 
-class ForestView(psgfAdmView):
+class ForestView(psgfPlaDataView):
     column_editable_list = ['forest_nom', 'formacio_i_habitat', 'codi']
 
 
@@ -51,11 +57,11 @@ class TipusDeTramitsView(psgfAdmView):
     # inline_models = [data_model.Tramit]
 
 
-class PlaView(psgfAdmView):
+class PlaView(psgfPlaDataView):
     column_list = ['nom', 'numero_expediente', 'any_del_pla', 'vigencia', 'municipi']
 
 
-class RodalView(psgfAdmView):
+class RodalView(psgfPlaDataView):
     column_list = ['pla', 'num_rodal', 'area', 'geometry']
     form_columns = ['pla_id', 'num_rodal', 'area', 'formacion_forestal', 'especie', 'objectiu_general',
                     'objectiu_preferent', 'descriptio_objectiu', 'descriptio_model_gestio',
@@ -64,23 +70,23 @@ class RodalView(psgfAdmView):
                     'superficie_ordenada', 'superficie_forestal', 'superficie_arbrada', 'superficie_especial',
                     'geometry']
 
-class ResumInventariFustaView(psgfAdmView):
+class ResumInventariFustaView(psgfPlaDataView):
     column_list = ['rodal', 'tipus_inventari', 'forma_principal', 'any', 'n_peus_ha', 'vol',
                    'ab', 'composicio_especifica', 'distribucio_espacial']
 
 
-class InventariCdGrup(psgfAdmView):
+class InventariCdGrup(psgfPlaDataView):
     can_delete = False
     can_create = False
     can_edit = False
     column_list = ['id', 'pla', 'num_rodal', 'c_d', 'npeus', 'a_b']
 
 
-class ActuacionsDelPlaView(psgfAdmView):
+class ActuacionsDelPlaView(psgfPlaDataView):
     column_list = ['rodal', 'actuacio', 'any_programat', 'area_afectada']
 
 
-class PlaForestView(psgfAdmView):
+class PlaForestView(psgfPlaDataView):
     column_list = ['pla', 'forest']
 
 
@@ -131,7 +137,7 @@ class BlobUploadField(fields.StringField):
                 setattr(obj, self.mimetype_field, self.data.content_type)
 
 
-class ProjectUploadView(psgfAdmView):
+class ProjectUploadView(ModelView):
     '''
     column_list = ('pdf_fname', 'pdf_blob', 'camins_fname', 'camins_blob', 'canvi_us_fname', 'canvi_us_blob',
                    'infraestructures_incedis_fname', 'infraestructures_incedis_blob',
@@ -145,6 +151,9 @@ class ProjectUploadView(psgfAdmView):
     form_columns = ('name', 'numero_expediente', 'any_del_pla',
                     'pdf_blob', 'camins_blob', 'canvi_us_blob', 'infraestructures_incedis_blob',
                     'unitats_actuacio_blob', 'usos_vege_blob', 'informacio_addicional_blob')
+
+    create_modal = True
+
     column_labels = dict(name='name', last_name=' Name')
     form_extra_fields = {
         'pdf_blob': BlobUploadField(
@@ -198,7 +207,7 @@ class ProjectUploadView(psgfAdmView):
 
     def is_accessible(self):
         try:
-            return dbquery.isAcessible(current_user, True) or \
+            return dbquery.isAdministrator(current_user) or \
                    ((not (current_user is None) and
                      current_user.profile.can_upload))
         except:
@@ -216,17 +225,17 @@ def addViews(admin):
         ForestView(data_model.Forest, data_model.db.session, category=categories.Categories.category['Pla Data']))
     admin.add_view(
         RodalView(data_model.Rodal, data_model.db.session, category=categories.Categories.category['Pla Data']))
-    admin.add_view(psgfAdmView(data_model.XarxaNovaConstruccio, data_model.db.session,
+    admin.add_view(psgfPlaDataView(data_model.XarxaNovaConstruccio, data_model.db.session,
                                category=categories.Categories.category['Pla Data']))
-    admin.add_view(psgfAdmView(data_model.XarxaViariaExistent, data_model.db.session,
+    admin.add_view(psgfPlaDataView(data_model.XarxaViariaExistent, data_model.db.session,
                                category=categories.Categories.category['Pla Data']))
-    admin.add_view(psgfAdmView(data_model.LineasDefensaPuntsAigua, data_model.db.session,
+    admin.add_view(psgfPlaDataView(data_model.LineasDefensaPuntsAigua, data_model.db.session,
                                category=categories.Categories.category['Pla Data']))
-    admin.add_view(psgfAdmView(data_model.CanviUs, data_model.db.session,
+    admin.add_view(psgfPlaDataView(data_model.CanviUs, data_model.db.session,
                                category=categories.Categories.category['Pla Data']))
-    admin.add_view(psgfAdmView(data_model.PropietariDade, data_model.db.session,
+    admin.add_view(psgfPlaDataView(data_model.PropietariDade, data_model.db.session,
                                category=categories.Categories.category['Pla Data']))
-    admin.add_view(ActuacionsDelPlaView(data_model.ActuacionsDelPla, data_model.db.session,
+    admin.add_view(psgfPlaDataView(data_model.ActuacionsDelPla, data_model.db.session,
                                         category=categories.Categories.category['Pla Data']))
 
     # Queries
@@ -278,16 +287,19 @@ def addViews(admin):
                                category=categories.Categories.category['Administration']))
     admin.add_view(psgfAdmView(data_model.ActuacionsPTGMF, data_model.db.session,
                                category=categories.Categories.category['Administration']))
+    admin.add_view(psgfAdmView(data_model.LogImport, data_model.db.session,
+                               category=categories.Categories.category['Administration']))
+
 
     # Inventari
     admin.add_sub_category(name=categories.Categories.category['Inventari'],
                            parent_name=categories.Categories.category['Pla Data'])
     admin.add_view(
-        psgfAdmView(data_model.Inventari, data_model.db.session, category=categories.Categories.category['Inventari']))
-    admin.add_view(psgfAdmView(data_model.ResultatsInventariFusta, data_model.db.session,
+        psgfPlaDataView(data_model.Inventari, data_model.db.session, category=categories.Categories.category['Inventari']))
+    admin.add_view(psgfPlaDataView(data_model.ResultatsInventariFusta, data_model.db.session,
                                category=categories.Categories.category['Inventari']))
     admin.add_view(ResumInventariFustaView(data_model.ResumInventariFusta, data_model.db.session,
                                category=categories.Categories.category['Inventari']))
     admin.add_view(
-        psgfAdmView(data_model.InventariCd, data_model.db.session,
+        psgfPlaDataView(data_model.InventariCd, data_model.db.session,
                     category=categories.Categories.category['Inventari']))

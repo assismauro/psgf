@@ -15,10 +15,10 @@ class mapView(BaseView):
     def index(self):
         plas = getPlas()
         classes = getAreasClasses()
-        return self.render('admin/maps.html', plas=plas, classes=classes)
+        return self.render('admin/maps.html', plas=plas, classes=classes, opacities=getOpacities())
 
     def is_accessible(self):
-        return dbquery.isAcessible(current_user, True)
+        return dbquery.isAdministrator(current_user)
 
 
 def getPlas():
@@ -31,9 +31,13 @@ def getAreasClasses():
     return classes
 
 
+def getOpacities():
+    return dbquery.getDictResultset("SELECT generate_series(1,10) as id, concat(cast(generate_series(1,10) * 10 "
+                                    "as varchar), '%') as value")
+
 def getAreas(pla_id, classe):
     if_class = f"and class = '{classe}'" if classe != "all" else ""
-    df = dbquery.getDataframeResultSet("select  id, name "
+    df = dbquery.getDataframeResultSet("select  id, name, label, rgb_color "
                                f"from area where pla_id = {pla_id} and geometry is not null {if_class}")
 
     gjson = dbquery.getJSONResultset(
@@ -46,25 +50,29 @@ def getAreas(pla_id, classe):
         f"(select st_centroid(st_union(geometry)) as centroid from area where pla_id = {pla_id} {if_class}) a").first()
 
     extent = dbquery.executeSQL(f"select st_extent(geometry) from area where pla_id = {pla_id} {if_class}").first()
-    if extent[0] != None:
+    if extent[0] is not None:
         values = extent[0].replace(',', ' ').replace('(', ' ').replace(')', ' ').split(' ')
         max_bound = max(abs(float(values[1]) - float(values[3])), abs(float(values[2]) - float(values[4]))) * 111 # km/degree
         zoom = 13.5 - np.log(max_bound)
     else:
         zoom = 13.5
+    colors = df.set_index('id').to_dict()['rgb_color']
+    return df, gjson, {"lat": centroid[1], "lon": centroid[0]}, zoom, colors
 
-    return df, gjson, {"lat": centroid[1], "lon": centroid[0]}, zoom
 
-
-def getFigAreas(pla_id, classe, baselayer):
-    area, geo, centroid, zoom = getAreas(pla_id, classe)
-    fig = px.choropleth_mapbox(area, geojson=geo, color=area.id,
+def getFigAreas(pla_id, classe, baselayer, opacity):
+    area, geo, centroid, zoom, colors = getAreas(pla_id, classe)
+    fig = px.choropleth_mapbox(area, geojson=geo,  color=area.rgb_color.tolist(),
                                locations=area.id, featureidkey="properties.id",
                                center=centroid,
-                               hover_name=area.name, hover_data={'id': False},
-                               mapbox_style="carto-positron", zoom=zoom)
+                               hover_name=area.label.tolist(), hover_data={'id': False},
+                               mapbox_style="carto-positron", zoom=zoom,
+                               color_discrete_map="identity",
+                               opacity=float(opacity)/10)
+
     fig.update_layout(
         mapbox_style="white-bg",
+        showlegend=False,
         mapbox_layers=[
             {
                 "below": 'traces',
