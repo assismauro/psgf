@@ -13,7 +13,8 @@ import supports.dbquery as dbquery
 import data_model
 import supports.maps_form as maps_form
 import supports.actuacions_form as actuacions_form
-
+from flask import flash
+from sqlalchemy import func
 
 # region Models definition
 class psgfPlaDataView(ModelView):
@@ -23,7 +24,33 @@ class psgfPlaDataView(ModelView):
         self.can_delete = dbquery.canEditProjectData(current_user)
         self.can_edit = dbquery.canEditProjectData(current_user)
         self.can_export = True
-        return current_user is not None and current_user.is_authenticated # should be logged, at least
+        #return jsonify(msg='Error: {}. '.format('error')), 400
+        return current_user is not None and current_user.is_authenticated# should be logged, at least
+
+    def get_query(self):
+        if current_user.profile.is_administrator or current_user.profile.can_edit_all_projects_data:
+            return self.session.query(self.model)
+        if current_user.profile.can_edit_owned_project_data:
+            if type(self) == PlaView:
+                return self.session.query(self.model).filter(self.model.user_id==current_user.id)
+            else:
+                return self.session.query(self.model).filter(self.model.pla_id.in_(
+                    dbquery.getDataframeResultSet(f'select id from Pla where user_id = {current_user.id}')[
+                        'id'].to_list()
+                ))
+
+    def get_count_query(self):
+        if current_user.profile.is_administrator or current_user.profile.can_edit_all_projects_data:
+            return self.session.query(func.count('*'))
+        if current_user.profile.can_edit_owned_project_data:
+            if type(self) == PlaView:
+                return self.session.query(func.count('*')).filter(self.model.user_id==current_user.id)
+            else:
+                return self.session.query(func.count('*')).filter(self.model.pla_id.in_(
+                    dbquery.getDataframeResultSet(f'select id from Pla where user_id = {current_user.id}')[
+                        'id'].to_list()
+                ))
+
 
 class psgfAdmView(ModelView):
 
@@ -238,6 +265,20 @@ def addViews(admin):
     admin.add_view(psgfPlaDataView(data_model.ActuacionsDelPla, data_model.db.session,
                                         category=categories.Categories.category['Pla Data']))
 
+    # Inventari
+    admin.add_sub_category(name=categories.Categories.category['Inventari'],
+                           parent_name=categories.Categories.category['Pla Data'])
+    admin.add_view(
+        psgfPlaDataView(data_model.Inventari, data_model.db.session,
+                        category=categories.Categories.category['Inventari']))
+    admin.add_view(psgfPlaDataView(data_model.ResultatsInventariFusta, data_model.db.session,
+                                   category=categories.Categories.category['Inventari']))
+    admin.add_view(ResumInventariFustaView(data_model.ResumInventariFusta, data_model.db.session,
+                                           category=categories.Categories.category['Inventari']))
+    admin.add_view(
+        psgfPlaDataView(data_model.InventariCd, data_model.db.session,
+                        category=categories.Categories.category['Inventari']))
+
     # Queries
     # admin.add_view(InventariCdGrup(data_model.InventariCdGrup, data_model.db.session,
     #                                         category=categories.Categories.category['Queries']))
@@ -290,16 +331,3 @@ def addViews(admin):
     admin.add_view(psgfAdmView(data_model.LogImport, data_model.db.session,
                                category=categories.Categories.category['Administration']))
 
-
-    # Inventari
-    admin.add_sub_category(name=categories.Categories.category['Inventari'],
-                           parent_name=categories.Categories.category['Pla Data'])
-    admin.add_view(
-        psgfPlaDataView(data_model.Inventari, data_model.db.session, category=categories.Categories.category['Inventari']))
-    admin.add_view(psgfPlaDataView(data_model.ResultatsInventariFusta, data_model.db.session,
-                               category=categories.Categories.category['Inventari']))
-    admin.add_view(ResumInventariFustaView(data_model.ResumInventariFusta, data_model.db.session,
-                               category=categories.Categories.category['Inventari']))
-    admin.add_view(
-        psgfPlaDataView(data_model.InventariCd, data_model.db.session,
-                    category=categories.Categories.category['Inventari']))

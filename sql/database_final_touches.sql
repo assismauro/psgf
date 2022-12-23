@@ -1,6 +1,11 @@
-INSERT INTO profile (id, profilename, is_administrator, can_upload) VALUES(1,'administrator', true, true);
-INSERT INTO profile (id, profilename, is_administrator, can_upload) VALUES(2,'upload', false, true);
-INSERT INTO profile (id, profilename, is_administrator, can_upload) VALUES(3,'guest', false, false);
+INSERT INTO profile (id, profilename, is_administrator, can_upload, can_edit_all_projects_data, can_edit_owned_project_data)
+VALUES(1,'administrator', true, true, true, true);
+INSERT INTO profile (id, profilename, is_administrator, can_upload, can_edit_all_projects_data, can_edit_owned_project_data)
+VALUES(2,'Upload and edit', false, true, true, true);
+INSERT INTO profile (id, profilename, is_administrator, can_upload,  can_edit_all_projects_data, can_edit_owned_project_data)
+VALUES(3,'Just upload', false, true, false, false);
+INSERT INTO profile (id, profilename, is_administrator, can_upload,  can_edit_all_projects_data, can_edit_owned_project_data)
+VALUES(4,'Upload a edit only own project data', false, true, false, true);
 INSERT INTO "user" (username, "password", active, email, confirmed_at, profile_id) VALUES('administrator','$2b$12$lIsSzAZE39Zu2S3cRYTxM.aNE9LbC5JNsIOj8wXcYLdOg6fr6Pemy'::character varying, true, 'assismauro@hotmail.com', now(), 1);
 INSERT INTO "user" (username, "password", active, email, confirmed_at, profile_id) VALUES('jordi','$2b$12$lIsSzAZE39Zu2S3cRYTxM.aNE9LbC5JNsIOj8wXcYLdOg6fr6Pemy'::character varying, true, 'j.garcia@ctfc.es', now(), 1);
 INSERT INTO "user" (username, "password", active, email, confirmed_at, profile_id) VALUES('albert','$2b$12$lIsSzAZE39Zu2S3cRYTxM.aNE9LbC5JNsIOj8wXcYLdOg6fr6Pemy'::character varying, true, 'albert.sanahuja@ctfc.cat', now(), 1);

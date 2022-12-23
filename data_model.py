@@ -26,7 +26,8 @@ class Profile(db.Model):
     profilename = Column(String(255), nullable=False, unique=True)
     is_administrator = Column(Boolean, nullable=False)
     can_upload = Column(Boolean, nullable=False)
-    can_edit_project_data = Column(Boolean, nullable=False)
+    can_edit_all_projects_data = Column(Boolean, nullable=False)
+    can_edit_owned_project_data = Column(Boolean, nullable=False)
 
     def __repr__(self):
         return self.profilename
@@ -365,6 +366,7 @@ class Pla(db.Model):
     p_pp = Column(Boolean)
     r_nc = Column(Boolean)
     p_rea = Column(Boolean)
+    user_id = Column(ForeignKey('user.id'))
     tecnic_redactor__id = Column(ForeignKey('tecnic_redactor.id'))
     tecnic_redactor_ = relationship('TecnicRedactor')
     __table_args__ = (app_object_support.db.UniqueConstraint('nom', 'vigencia'),)

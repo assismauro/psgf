@@ -38,7 +38,8 @@ def getOpacities():
 def getAreas(pla_id, classe):
     if_class = f"and class = '{classe}'" if classe != "all" else ""
     df = dbquery.getDataframeResultSet("select  id, name, label, rgb_color "
-                               f"from area where pla_id = {pla_id} and geometry is not null {if_class}")
+                               f"from area where pla_id = {pla_id} and geometry is not null {if_class} "
+                               f"order by layer_display_order")
 
     gjson = dbquery.getJSONResultset(
         f"select json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(t.*)::json)) "

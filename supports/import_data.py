@@ -13,7 +13,7 @@ import data_model as dm
 import supports.dbquery as dbquery
 import supports.app_object as app_object
 import shutil
-
+from flask_login import current_user
 pdfPassword = 'Artemis_76'
 
 supportEngine = dbquery.getEngine()
@@ -358,6 +358,7 @@ class ProcessUploadProjectData:
                 superficie_total = \
                     DadesInfoFinca.getFloat('FISuperficieArbrada', 0.0) + \
                     DadesInfoFinca.getFloat('FISuperficieNOArbrada', 0.0)
+
                 self.Pla = dm.Pla(tipus_de_pla='PTGMF',
                                   numero_expediente=self.projecteZip.numero_expediente,
                                   any_del_pla=self.projecteZip.any_del_pla,
@@ -385,7 +386,8 @@ class ProcessUploadProjectData:
                                   superficie_forestal=DadesInfoFinca.getFloat('FISuperficieForestal'),
                                   superficie_no_forestal=DadesInfoFinca.getFloat('FISuperficieNOForestal'),
                                   superficie_arbrada=DadesInfoFinca.getFloat('FISuperficieArbrada'),
-                                  superficie_no_arbrada=DadesInfoFinca.getFloat('FISuperficieNOArbrada')
+                                  superficie_no_arbrada=DadesInfoFinca.getFloat('FISuperficieNOArbrada'),
+                                  user_id=current_user.id
                                   )
 
                 self.session.add(self.Pla)
@@ -514,7 +516,7 @@ where pla.id = b.pla_id''')
                 except Exception as e:
                     self.send2Log('importRodals', e, True)
         except Exception as e:
-            self.send2Log('importRodals', e, True)
+                self.send2Log('importRodals', e, True)
         self.session.flush()
         self.session.commit()
 

@@ -71,7 +71,8 @@ def canEditProjectData(current_user):
             if current_user.profile is None:
                 return False
             else:
-                return current_user.profile.can_edit_project_data
+                return current_user.profile.can_edit_all_projects_data or\
+                    current_user.profile.can_edit_owned_project_data
     except:
         return False
 
